@@ -1,0 +1,8 @@
+name: orcamentos
+publish_to: none
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/dominio
+  - apps/pactto
