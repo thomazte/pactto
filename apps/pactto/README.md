@@ -1,3 +1,3 @@
 # Pactto
 
-A documentação do projeto está no [README da raiz](../../README.md).
+A documentação do projeto está em [documentação detalhada](../../docs/documentação%20detalhada.md).
