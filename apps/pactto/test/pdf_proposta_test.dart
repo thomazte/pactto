@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pactto/models/atalho_item.dart';
+import 'package:pactto/models/linha_digitada.dart';
 import 'package:pactto/models/proposta_pdf.dart';
 import 'package:pactto/services/pdf_proposta.dart';
 
@@ -29,5 +32,79 @@ void main() {
     expect(texto, contains('Proposta'));
     expect(texto, contains('Hora de desenvolvimento'));
     expect(texto, contains('1.440,00'));
+  });
+
+  test(
+    'o PDF separa a mensalidade da conta de hora, fechado e licença',
+    () async {
+      final hora = LinhaDigitada.ler(
+        modalidade: ModalidadeItem.hora,
+        descricao: 'Desenvolvimento',
+        quantidade: '50',
+        valor: '60',
+      );
+      final fechado = LinhaDigitada.ler(
+        modalidade: ModalidadeItem.valorFechado,
+        descricao: 'Implantação',
+        quantidade: '1',
+        valor: '1200',
+      );
+      final licenca = LinhaDigitada.ler(
+        modalidade: ModalidadeItem.licenca,
+        descricao: '',
+        quantidade: '3',
+        valor: '40',
+      );
+      final mensal = LinhaDigitada.ler(
+        modalidade: ModalidadeItem.mensalidade,
+        descricao: '',
+        quantidade: '1',
+        valor: '350',
+      );
+
+      final bytes = await gerarPdfProposta(
+        PropostaPdf(
+          linhas: [
+            LinhaPdf(nome: hora.texto, detalhe: '', total: ''),
+            LinhaPdf(nome: fechado.texto, detalhe: '', total: ''),
+            LinhaPdf(nome: licenca.texto, detalhe: '', total: ''),
+          ],
+          mensalidades: [mensal.texto],
+          total: r'R$ 4.320,00',
+        ),
+      );
+
+      final texto = latin1
+          .decode(bytes, allowInvalid: true)
+          .replaceAll('\x00', '');
+      expect(texto, contains('Desenvolvimento'));
+      expect(texto, contains('50 h'));
+      expect(texto, contains('60,00'));
+      expect(texto, contains('3.000,00'));
+      expect(texto, contains('Implanta'));
+      expect(texto, contains('1.200,00'));
+      expect(texto, contains('3 licen'));
+      expect(texto, contains('40,00'));
+      expect(texto, contains('350,00'));
+      expect(texto, contains('a partir do uso'));
+      expect(texto, contains('4.320,00'));
+    },
+  );
+
+  test('nome curto permanece grande e nome longo cabe numa linha', () async {
+    final fonte = await rootBundle.load('assets/fonts/DejaVuSans-Bold.ttf');
+    final curto = medidaTituloEmpresa('Pactto', fonte);
+    expect(curto.tamanho, tamanhoBaseTituloEmpresa);
+    expect(curto.linhas, 1);
+
+    const longo = 'Consultoria e Desenvolvimento de Sistemas Integrados Ltda';
+    final medida = medidaTituloEmpresa(longo, fonte);
+    expect(medida.linhas, 1);
+    expect(medida.tamanho, lessThan(tamanhoBaseTituloEmpresa));
+    expect(medida.tamanho, greaterThanOrEqualTo(tamanhoMinimoTituloEmpresa));
+
+    final enorme = medidaTituloEmpresa('A' * 180, fonte);
+    expect(enorme.tamanho, tamanhoMinimoTituloEmpresa);
+    expect(enorme.linhas, 2);
   });
 }

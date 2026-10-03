@@ -8,24 +8,37 @@ import '../core/constants/marca_pix_svg.dart';
 import '../models/proposta_pdf.dart';
 
 Future<List<int>> gerarPdfProposta(PropostaPdf proposta) async {
-  final regular = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/DejaVuSans.ttf'),
+  final bytesRegular = await rootBundle.load('assets/fonts/DejaVuSans.ttf');
+  final bytesNegrito = await rootBundle.load(
+    'assets/fonts/DejaVuSans-Bold.ttf',
   );
-  final negrito = pw.Font.ttf(
-    await rootBundle.load('assets/fonts/DejaVuSans-Bold.ttf'),
-  );
+  final regular = pw.Font.ttf(bytesRegular);
+  final negrito = pw.Font.ttf(bytesNegrito);
+  final bytesMarca = await rootBundle.load('assets/marca_zamoht.png');
+  final marca = pw.MemoryImage(bytesMarca.buffer.asUint8List());
+  final nomeEmpresa = proposta.empresaNome ?? 'Proposta';
+  final titulo = medidaTituloEmpresa(nomeEmpresa, bytesNegrito);
   final doc = pw.Document(
     title: 'Proposta',
     keywords: [
       for (final linha in proposta.linhas) linha.nome,
+      ...proposta.mensalidades,
       proposta.total,
     ].join(' '),
   );
   doc.addPage(
     pw.Page(
-      pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(48, 48, 48, 40),
-      theme: pw.ThemeData.withFont(base: regular, bold: negrito),
+      pageTheme: pw.PageTheme(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.fromLTRB(48, 48, 48, 40),
+        theme: pw.ThemeData.withFont(base: regular, bold: negrito),
+        buildBackground: (context) {
+          return pw.FullPage(
+            ignoreMargins: true,
+            child: pw.Center(child: pw.Image(marca, width: 280)),
+          );
+        },
+      ),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -47,9 +60,10 @@ Future<List<int>> gerarPdfProposta(PropostaPdf proposta) async {
                   ),
                   pw.SizedBox(height: 6),
                   pw.Text(
-                    proposta.empresaNome ?? 'Proposta',
+                    nomeEmpresa,
+                    maxLines: titulo.linhas,
                     style: pw.TextStyle(
-                      fontSize: 24,
+                      fontSize: titulo.tamanho,
                       fontWeight: pw.FontWeight.bold,
                       color: PdfColors.white,
                     ),
@@ -126,18 +140,24 @@ Future<List<int>> gerarPdfProposta(PropostaPdf proposta) async {
                             fontWeight: pw.FontWeight.bold,
                           ),
                         ),
-                        pw.SizedBox(height: 2),
-                        pw.Text(
-                          linha.detalhe,
-                          style: const pw.TextStyle(
-                            fontSize: 11,
-                            color: PdfColors.grey700,
+                        if (linha.detalhe.isNotEmpty) ...[
+                          pw.SizedBox(height: 2),
+                          pw.Text(
+                            linha.detalhe,
+                            style: const pw.TextStyle(
+                              fontSize: 11,
+                              color: PdfColors.grey700,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
-                  pw.Text(linha.total, style: const pw.TextStyle(fontSize: 13)),
+                  if (linha.total.isNotEmpty)
+                    pw.Text(
+                      linha.total,
+                      style: const pw.TextStyle(fontSize: 13),
+                    ),
                 ],
               ),
               pw.SizedBox(height: 8),
@@ -166,6 +186,21 @@ Future<List<int>> gerarPdfProposta(PropostaPdf proposta) async {
                 ),
               ],
             ),
+            if (proposta.mensalidades.isNotEmpty) ...[
+              pw.SizedBox(height: 18),
+              pw.Container(height: 0.4, color: PdfColors.grey300),
+              pw.SizedBox(height: 12),
+              for (final texto in proposta.mensalidades) ...[
+                pw.Text(
+                  texto,
+                  style: const pw.TextStyle(
+                    fontSize: 12,
+                    color: PdfColors.grey800,
+                  ),
+                ),
+                pw.SizedBox(height: 6),
+              ],
+            ],
           ],
         );
       },
@@ -174,34 +209,78 @@ Future<List<int>> gerarPdfProposta(PropostaPdf proposta) async {
   return doc.save();
 }
 
+enum EntregaPdf {
+  /// Impresso ou compartilhado no celular.
+  entregue,
+
+  /// Baixado no navegador.
+  baixado,
+
+  /// O prestador fechou a impressão ou o compartilhamento sem concluir.
+  cancelado,
+}
+
 class PdfPropostaService {
   const PdfPropostaService();
 
-  /// Devolve true quando o PDF foi compartilhado no navegador.
-  Future<bool> entregar(Uint8List bytes) async {
+  Future<EntregaPdf> entregar(Uint8List bytes) async {
     if (kIsWeb) {
       final baixou = await Printing.sharePdf(
         bytes: bytes,
         filename: 'proposta.pdf',
       );
-      if (!baixou) throw StateError('pdf');
-      return true;
+      return baixou ? EntregaPdf.baixado : EntregaPdf.cancelado;
     }
+    bool imprimiu;
     try {
-      await Printing.layoutPdf(
+      imprimiu = await Printing.layoutPdf(
         onLayout: (_) async => bytes,
         name: 'proposta.pdf',
       );
-      return false;
     } catch (_) {
-      final baixou = await Printing.sharePdf(
+      final compartilhou = await Printing.sharePdf(
         bytes: bytes,
         filename: 'proposta.pdf',
       );
-      if (!baixou) rethrow;
-      return false;
+      return compartilhou ? EntregaPdf.entregue : EntregaPdf.cancelado;
     }
+    return imprimiu ? EntregaPdf.entregue : EntregaPdf.cancelado;
   }
+}
+
+const tamanhoBaseTituloEmpresa = 24.0;
+const tamanhoMinimoTituloEmpresa = 13.0;
+
+/// Largura útil do nome no cabeçalho azul, já sem margem e padding.
+double larguraTituloEmpresa() {
+  return PdfPageFormat.a4.width - 48 * 2 - 22 * 2;
+}
+
+/// Nome curto permanece em 24 pt. Nome longo encolhe para caber numa linha.
+({double tamanho, int linhas}) medidaTituloEmpresa(
+  String nome,
+  ByteData fonteNegrito,
+) {
+  final em = _larguraEm(TtfParser(fonteNegrito), nome);
+  final largura = larguraTituloEmpresa() - 2;
+  if (em <= 0 || largura / em >= tamanhoBaseTituloEmpresa) {
+    return (tamanho: tamanhoBaseTituloEmpresa, linhas: 1);
+  }
+  final ideal = largura / em;
+  if (ideal >= tamanhoMinimoTituloEmpresa) {
+    return (tamanho: ideal, linhas: 1);
+  }
+  return (tamanho: tamanhoMinimoTituloEmpresa, linhas: 2);
+}
+
+double _larguraEm(TtfParser fonte, String texto) {
+  var largura = 0.0;
+  for (final rune in texto.runes) {
+    final indice = fonte.charToGlyphIndexMap[rune];
+    if (indice == null) continue;
+    largura += fonte.glyphInfoMap[indice]?.advanceWidth ?? 0;
+  }
+  return largura;
 }
 
 pw.Widget _par(String rotulo, String valor) {

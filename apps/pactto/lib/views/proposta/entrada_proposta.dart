@@ -116,69 +116,38 @@ class EntradaProposta extends StatelessWidget {
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final atalho in atalhosItem)
-              ActionChip(
-                label: Text(atalho.rotulo),
+            for (final modalidade in ModalidadeItem.values)
+              ChoiceChip(
+                label: Text(modalidade.rotulo),
+                selected: controller.modalidade == modalidade,
                 visualDensity: VisualDensity.compact,
-                onPressed: () => controller.aplicarAtalho(atalho),
+                onSelected: (selecionada) {
+                  if (selecionada) controller.definirModalidade(modalidade);
+                },
               ),
           ],
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            SizedBox(
-              width: 96,
-              child: TextField(
-                key: const Key('quantidade'),
-                controller: controller.quantidade,
-                decoration: const InputDecoration(
-                  labelText: 'Qtd',
-                  hintText: '1',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onSubmitted: (_) => controller.adicionar(),
+        _CamposModalidade(controller: controller),
+        if (controller.erroItem != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              controller.erroItem!,
+              key: const Key('erro_item'),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 13,
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                key: const Key('valor'),
-                controller: controller.valor,
-                decoration: const InputDecoration(
-                  labelText: 'Valor',
-                  hintText: '180,00',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                onSubmitted: (_) => controller.adicionar(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.filled(
-              key: const Key('adicionar'),
-              tooltip: 'Adicionar',
-              style: IconButton.styleFrom(
-                backgroundColor: Cores.azul,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: const Color(0xFFE2E8F0),
-              ),
-              onPressed: controller.adicionar,
-              icon: const Icon(Icons.add),
-            ),
-          ],
-        ),
+          ),
         if (linhas.isNotEmpty) ...[
           const SizedBox(height: 8),
           for (var i = 0; i < linhas.length; i++)
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              title: Text(linhas[i].nome),
-              subtitle: Text('${linhas[i].quantidade} × ${linhas[i].valor}'),
+              title: Text(linhas[i].texto),
               trailing: IconButton(
                 tooltip: 'Remover',
                 onPressed: () => controller.remover(i),
@@ -240,6 +209,84 @@ class EntradaProposta extends StatelessWidget {
             onChanged: (_) => controller.notificar(),
           ),
         ],
+      ],
+    );
+  }
+}
+
+class _CamposModalidade extends StatelessWidget {
+  const _CamposModalidade({required this.controller});
+
+  final PropostaController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final modalidade = controller.modalidade;
+    final botao = IconButton.filled(
+      key: const Key('adicionar'),
+      tooltip: 'Adicionar',
+      style: IconButton.styleFrom(
+        backgroundColor: Cores.azul,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: const Color(0xFFE2E8F0),
+      ),
+      onPressed: controller.adicionar,
+      icon: const Icon(Icons.add),
+    );
+    final valor = TextField(
+      key: const Key('valor'),
+      controller: controller.valor,
+      decoration: InputDecoration(
+        labelText: switch (modalidade) {
+          ModalidadeItem.hora => 'Valor da hora',
+          ModalidadeItem.valorFechado => 'Valor único',
+          ModalidadeItem.mensalidade => 'Valor por mês',
+          ModalidadeItem.licenca => 'Valor unitário',
+        },
+        hintText: switch (modalidade) {
+          ModalidadeItem.hora => '60,00',
+          ModalidadeItem.valorFechado => '1.200,00',
+          ModalidadeItem.mensalidade => '350,00',
+          ModalidadeItem.licenca => '40,00',
+        },
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: (_) => controller.aoEditarItem(),
+      onSubmitted: (_) => controller.adicionar(),
+    );
+
+    if (!modalidade.informaQuantidade) {
+      return Row(
+        children: [
+          Expanded(child: valor),
+          const SizedBox(width: 8),
+          botao,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        SizedBox(
+          width: modalidade == ModalidadeItem.hora ? 96 : 124,
+          child: TextField(
+            key: const Key('quantidade'),
+            controller: controller.quantidade,
+            decoration: InputDecoration(
+              labelText: modalidade == ModalidadeItem.hora
+                  ? 'Horas'
+                  : 'Quantidade',
+              hintText: modalidade == ModalidadeItem.hora ? '50' : '1',
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => controller.aoEditarItem(),
+            onSubmitted: (_) => controller.adicionar(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: valor),
+        const SizedBox(width: 8),
+        botao,
       ],
     );
   }

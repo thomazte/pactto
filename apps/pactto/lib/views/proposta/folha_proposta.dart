@@ -18,6 +18,14 @@ class FolhaProposta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final linhas = controller.linhas;
+    final somadas = [
+      for (final linha in linhas)
+        if (linha.somaNoOrcamento) linha,
+    ];
+    final mensalidades = [
+      for (final linha in linhas)
+        if (!linha.somaNoOrcamento) linha,
+    ];
     final resumo = controller.resumo;
     final totais = resumo.totais;
     final empresaNome = controller.nomeEmpresa;
@@ -60,15 +68,21 @@ class FolhaProposta extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      empresaNome ?? 'Sua empresa',
-                      style: TextStyle(
-                        color: empresaNome == null
-                            ? Colors.white.withValues(alpha: 0.65)
-                            : Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.4,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        empresaNome ?? 'Sua empresa',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: empresaNome == null
+                              ? Colors.white.withValues(alpha: 0.65)
+                              : Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                        ),
                       ),
                     ),
                     if (empresaLinhas.isNotEmpty || empresaPix != null)
@@ -142,28 +156,10 @@ class FolhaProposta extends StatelessWidget {
                       ),
                     )
                   else
-                    for (final linha in linhas) ...[
+                    for (final linha in somadas) ...[
                       Text(
-                        linha.nome,
+                        linha.texto,
                         style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${linha.quantidade} × ${linha.valor}',
-                              style: const TextStyle(color: Cores.suave),
-                            ),
-                          ),
-                          if (totais != null)
-                            Text(
-                              formatarReais(linha.totalCentavos),
-                              style: const TextStyle(
-                                fontFeatures: [FontFeature.tabularFigures()],
-                              ),
-                            ),
-                        ],
                       ),
                       const Divider(height: 22, color: Cores.linha),
                     ],
@@ -203,6 +199,14 @@ class FolhaProposta extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (mensalidades.isNotEmpty) ...[
+                      const Divider(height: 28, color: Cores.linha),
+                      for (final linha in mensalidades)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(linha.texto),
+                        ),
+                    ],
                   ],
                   const SizedBox(height: 20),
                   FilledButton(

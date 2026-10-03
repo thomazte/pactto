@@ -25,3 +25,4 @@ flutter:
   assets:
     - assets/fonts/DejaVuSans.ttf
     - assets/fonts/DejaVuSans-Bold.ttf
+    - assets/marca_zamoht.png

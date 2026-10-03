@@ -14,6 +14,7 @@ class PropostaPdf {
   const PropostaPdf({
     required this.linhas,
     required this.total,
+    this.mensalidades = const [],
     this.desconto,
     this.visita,
     this.validadeDias = 7,
@@ -25,6 +26,9 @@ class PropostaPdf {
   });
 
   final List<LinhaPdf> linhas;
+
+  /// Valores mensais, fora do total único do projeto.
+  final List<String> mensalidades;
   final String total;
   final String? desconto;
   final String? visita;

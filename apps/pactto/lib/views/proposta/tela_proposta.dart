@@ -32,7 +32,9 @@ class _TelaPropostaState extends State<TelaProposta> {
     final mensagem = switch (resultado) {
       ResultadoPdf.baixado => 'PDF baixado.',
       ResultadoPdf.falha => 'Não foi possível gerar o PDF.',
-      ResultadoPdf.gerado || ResultadoPdf.ignorado => null,
+      ResultadoPdf.gerado ||
+      ResultadoPdf.cancelado ||
+      ResultadoPdf.ignorado => null,
     };
     if (mensagem == null) return;
     ScaffoldMessenger.of(context)

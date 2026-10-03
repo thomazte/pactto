@@ -12,7 +12,7 @@ import '../models/resumo_orcamento.dart';
 import '../services/empresa_local.dart';
 import '../services/pdf_proposta.dart';
 
-enum ResultadoPdf { ignorado, gerado, baixado, falha }
+enum ResultadoPdf { ignorado, gerado, baixado, cancelado, falha }
 
 class PropostaController extends ChangeNotifier {
   PropostaController({
@@ -45,10 +45,13 @@ class PropostaController extends ChangeNotifier {
   final visita = TextEditingController();
   final linhas = <LinhaDigitada>[];
 
-  TipoItem tipo = TipoItem.maoDeObra;
+  ModalidadeItem modalidade = ModalidadeItem.hora;
   TipoDesconto descontoTipo = TipoDesconto.percentual;
   var mostrarAjustes = false;
   var gerandoPdf = false;
+
+  /// Motivo pelo qual o último item digitado não entrou na lista.
+  String? erroItem;
   var _descartado = false;
 
   String? get nomeEmpresa => _limpo(empresaNome);
@@ -65,11 +68,12 @@ class PropostaController extends ChangeNotifier {
     try {
       final itens = [
         for (final linha in linhas)
-          LinhaOrcamento(
-            tipo: linha.tipo,
-            quantidadeMilesimos: parseQuantidadeMilesimos(linha.quantidade),
-            valorUnitarioCentavos: parseReaisCentavos(linha.valor),
-          ),
+          if (linha.somaNoOrcamento)
+            LinhaOrcamento(
+              tipo: linha.tipo,
+              quantidadeMilesimos: linha.quantidadeMilesimos,
+              valorUnitarioCentavos: linha.valorCentavos,
+            ),
       ];
       final descontoTexto = desconto.text.trim();
       final visitaTexto = visita.text.trim();
@@ -94,26 +98,36 @@ class PropostaController extends ChangeNotifier {
     }
   }
 
-  void aplicarAtalho(AtalhoItem atalho) {
-    tipo = atalho.tipo;
-    descricao.text = atalho.rotulo;
+  void definirModalidade(ModalidadeItem nova) {
+    if (modalidade == nova) return;
+    modalidade = nova;
+    quantidade.clear();
+    valor.clear();
+    erroItem = null;
     _atualizar();
   }
 
   void adicionar() {
     final valorDigitado = valor.text.trim();
     if (valorDigitado.isEmpty) return;
-    final quantidadeDigitada = quantidade.text.trim().isEmpty
-        ? '1'
-        : quantidade.text.trim();
-    linhas.add(
-      LinhaDigitada(
-        tipo: tipo,
-        descricao: descricao.text.trim(),
-        quantidade: quantidadeDigitada,
-        valor: valorDigitado,
-      ),
-    );
+    final quantidadeDigitada = modalidade.informaQuantidade
+        ? (quantidade.text.trim().isEmpty ? '1' : quantidade.text.trim())
+        : '1';
+    try {
+      linhas.add(
+        LinhaDigitada.ler(
+          modalidade: modalidade,
+          descricao: descricao.text.trim(),
+          quantidade: quantidadeDigitada,
+          valor: valorDigitado,
+        ),
+      );
+    } on ErroDominio catch (erro) {
+      erroItem = _mensagem(erro.codigo);
+      _atualizar();
+      return;
+    }
+    erroItem = null;
     descricao.clear();
     quantidade.clear();
     valor.clear();
@@ -136,6 +150,12 @@ class PropostaController extends ChangeNotifier {
   }
 
   void notificar() => _atualizar();
+
+  void aoEditarItem() {
+    if (erroItem == null) return;
+    erroItem = null;
+    _atualizar();
+  }
 
   void aoEditarEmpresa() {
     _atualizar();
@@ -164,11 +184,12 @@ class PropostaController extends ChangeNotifier {
           PropostaPdf(
             linhas: [
               for (final linha in linhas)
-                LinhaPdf(
-                  nome: linha.nome,
-                  detalhe: linha.detalhe,
-                  total: formatarReais(linha.totalCentavos),
-                ),
+                if (linha.somaNoOrcamento)
+                  LinhaPdf(nome: linha.texto, detalhe: '', total: ''),
+            ],
+            mensalidades: [
+              for (final linha in linhas)
+                if (!linha.somaNoOrcamento) linha.texto,
             ],
             total: formatarReais(totais.totalCentavos),
             desconto: totais.descontoCentavos == 0
@@ -185,9 +206,12 @@ class PropostaController extends ChangeNotifier {
           ),
         ),
       );
-      final baixadoNaWeb = await _pdf.entregar(bytes);
-      gerou = true;
-      resultado = baixadoNaWeb ? ResultadoPdf.baixado : ResultadoPdf.gerado;
+      resultado = switch (await _pdf.entregar(bytes)) {
+        EntregaPdf.entregue => ResultadoPdf.gerado,
+        EntregaPdf.baixado => ResultadoPdf.baixado,
+        EntregaPdf.cancelado => ResultadoPdf.cancelado,
+      };
+      gerou = resultado != ResultadoPdf.cancelado;
     } catch (_) {
       resultado = ResultadoPdf.falha;
     } finally {
@@ -209,7 +233,8 @@ class PropostaController extends ChangeNotifier {
     desconto.clear();
     visita.clear();
     linhas.clear();
-    tipo = TipoItem.maoDeObra;
+    erroItem = null;
+    modalidade = ModalidadeItem.hora;
     descontoTipo = TipoDesconto.percentual;
     mostrarAjustes = false;
   }
@@ -225,6 +250,9 @@ class PropostaController extends ChangeNotifier {
       'desconto_percentual_invalido' => 'O desconto vai de 0 a 100%.',
       'quantidade_invalida' => 'Quantidade inválida. Exemplo: 2,5.',
       'moeda_invalida' => 'Valor inválido. Exemplo: 180,00.',
+      'valor_acima_do_limite' => 'Valor alto demais.',
+      'preco_negativo' => 'O valor não pode ser negativo.',
+      'taxa_negativa' => 'A visita não pode ser negativa.',
       _ => 'Confira os valores para continuar.',
     };
   }

@@ -1,5 +1,6 @@
 import 'arredondamento.dart';
 import 'erro_dominio.dart';
+import 'moeda.dart';
 
 enum TipoItem { maoDeObra, material }
 
@@ -58,16 +59,27 @@ int totalLinhaCentavos({
 }
 
 /// Quantidade pt-BR com no máximo 3 casas. "2,5" vira 2500 milésimos.
+///
+/// Sem vírgula, "2.5" e "2.75" também valem. "1.500" é recusado, porque
+/// tanto pode ser mil e quinhentos quanto um e meio.
 int parseQuantidadeMilesimos(String entrada) {
-  final texto = entrada.trim();
+  final texto = pontoComoVirgula(entrada.trim(), casas: 2);
   final match = RegExp(r'^(\d+)(?:,(\d{1,3}))?$').firstMatch(texto);
   if (match == null) {
     throw const ErroDominio('quantidade_invalida');
   }
-  final inteiros = int.parse(match.group(1)!);
+  final inteiros = BigInt.parse(match.group(1)!);
   final fracao = match.group(2);
   final milesimosFracao = fracao == null ? 0 : int.parse(fracao.padRight(3, '0'));
-  return somarCentavos(inteiros * 1000, milesimosFracao);
+  return centavosSeguros(inteiros * BigInt.from(1000) + BigInt.from(milesimosFracao));
+}
+
+/// Quantidade em milésimos no formato pt-BR, sem zeros à direita.
+/// 2500 vira "2,5" e 50000 vira "50".
+String formatarQuantidade(int milesimos) {
+  final inteiros = milesimos ~/ 1000;
+  final fracao = (milesimos % 1000).toString().padLeft(3, '0').replaceFirst(RegExp(r'0+$'), '');
+  return fracao.isEmpty ? '$inteiros' : '$inteiros,$fracao';
 }
 
 TotaisOrcamento calcularOrcamento({

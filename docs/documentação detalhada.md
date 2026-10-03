@@ -29,7 +29,7 @@ O ponto de entrada é `apps/pactto/lib/main.dart`. Um `flutter run` na raiz do r
 
 Ao abrir, o aplicativo carrega nome, telefone, e-mail e Pix gravados no aparelho. O prestador informa o cliente, acrescenta itens e acompanha a folha ao lado, ou abaixo, em telas com menos de 900 px de largura.
 
-Cada item tem descrição, quantidade e valor. A quantidade vazia vale 1. Sem valor, o item não entra. Atalhos preenchem a descrição e o tipo:
+Cada item tem descrição, quantidade e valor. A quantidade vazia vale 1. Sem valor, o item não entra. Quantidade ou valor ilegível, quantidade zero ou valor negativo também impedem a entrada: o motivo aparece abaixo dos campos e some quando o prestador volta a digitar. Atalhos preenchem a descrição e o tipo:
 
 | Atalho | Tipo |
 | --- | --- |
@@ -39,7 +39,7 @@ Cada item tem descrição, quantidade e valor. A quantidade vazia vale 1. Sem va
 
 Descrição vazia aparece como "Serviço" ou "Licença", conforme o tipo. Desconto e visita ficam ocultos até o prestador abrir "Desconto ou visita". O desconto é percentual ou fixo em reais. A visita é uma taxa somada depois do desconto.
 
-O botão "Gerar PDF" só fica ativo com ao menos um item e com o total calculado. Depois de um PDF bem-sucedido, cliente, itens, desconto e visita são apagados. Os dados da empresa permanecem.
+O botão "Gerar PDF" só fica ativo com ao menos um item e com o total calculado. Depois que o PDF é impresso, compartilhado ou baixado, cliente, itens, desconto e visita são apagados. Se o prestador fechar a impressão ou o compartilhamento sem concluir, a proposta continua preenchida. Os dados da empresa permanecem.
 
 Telefone e WhatsApp aceitam a máscara brasileira: celular `(62) 98483-5669` e fixo `(62) 3483-5669`. Um prefixo `55` com 12 ou 13 dígitos é removido antes da máscara.
 
@@ -51,7 +51,9 @@ A base do desconto é a soma das linhas. O percentual incide só sobre essa base
 
 O campo percentual usa a mesma leitura de moeda. `10` e `10,00` valem 10%. `100` vale 100%. Acima de 100% o cálculo recusa o desconto. Desconto fixo maior que a base também é recusado. Quantidade aceita no máximo três casas decimais, com vírgula. Moeda aceita o formato brasileiro, com ponto de milhar e até duas casas: `1.234,50`.
 
-Mensagens exibidas na folha:
+Para o teclado numérico sem vírgula, um texto sem vírgula com um único ponto seguido de um ou dois dígitos lê o ponto como vírgula: `10.5` vale `10,50` e `2.5` horas valem `2,5`. Com três dígitos depois do ponto, `1.234` continua milhar na moeda e é recusado na quantidade, que não tem milhar. Valores grandes demais para o cálculo são recusados com "Valor alto demais.".
+
+Mensagens exibidas na folha e abaixo dos campos do item:
 
 | Situação | Texto |
 | --- | --- |
@@ -59,6 +61,9 @@ Mensagens exibidas na folha:
 | Percentual fora de 0 a 100 | O desconto vai de 0 a 100%. |
 | Quantidade ilegível | Quantidade inválida. Exemplo: 2,5. |
 | Valor ilegível | Valor inválido. Exemplo: 180,00. |
+| Valor acima do limite do cálculo | Valor alto demais. |
+| Valor do item negativo | O valor não pode ser negativo. |
+| Visita negativa | A visita não pode ser negativa. |
 | Outra falha de domínio | Confira os valores para continuar. |
 
 Falha ao gerar ou entregar o PDF mostra "Não foi possível gerar o PDF." No navegador, a entrega bem-sucedida mostra "PDF baixado."

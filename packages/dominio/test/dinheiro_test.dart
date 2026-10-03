@@ -208,6 +208,31 @@ void main() {
       expect(parseQuantidadeMilesimos('2,500'), 2500);
       expect(parseQuantidadeMilesimos('2,5'), 2500);
     });
+
+    test('FIN-21 quantidade com ponto decimal', () {
+      expect(parseQuantidadeMilesimos('2.5'), 2500);
+      expect(parseQuantidadeMilesimos('2.75'), 2750);
+      expect(() => parseQuantidadeMilesimos('1.500'), erro('quantidade_invalida'));
+      expect(() => parseQuantidadeMilesimos('1.2.3'), erro('quantidade_invalida'));
+    });
+
+    test('FIN-22 quantidade enorme é erro de domínio, não estouro', () {
+      expect(
+        () => parseQuantidadeMilesimos('99999999999999999'),
+        erro('valor_acima_do_limite'),
+      );
+      expect(
+        () => parseQuantidadeMilesimos('9' * 30),
+        erro('valor_acima_do_limite'),
+      );
+    });
+
+    test('FIN-23 quantidade formatada sem zeros à direita', () {
+      expect(formatarQuantidade(2500), '2,5');
+      expect(formatarQuantidade(2750), '2,75');
+      expect(formatarQuantidade(50000), '50');
+      expect(formatarQuantidade(1005), '1,005');
+    });
   });
 
   group('moeda', () {
@@ -221,6 +246,29 @@ void main() {
 
     test('MOE-03 0,10 mais 0,20 fecha em 30 centavos', () {
       expect(parseReaisCentavos('0,10') + parseReaisCentavos('0,20'), 30);
+    });
+
+    test('MOE-04 ponto com 1 ou 2 casas é decimal', () {
+      expect(parseReaisCentavos('10.5'), 1050);
+      expect(parseReaisCentavos('33.33'), 3333);
+      expect(parseReaisCentavos('1.234'), 123400);
+      expect(parseReaisCentavos('1.234.567'), 123456700);
+      expect(() => parseReaisCentavos('1.234.5'), erro('moeda_invalida'));
+    });
+
+    test('MOE-05 valor enorme é erro de domínio, não estouro', () {
+      expect(
+        () => parseReaisCentavos('999999999999999999'),
+        erro('valor_acima_do_limite'),
+      );
+      expect(
+        () => parseReaisCentavos('9' * 30),
+        erro('valor_acima_do_limite'),
+      );
+      expect(
+        () => parseReaisCentavos('-${'9' * 30}'),
+        erro('valor_acima_do_limite'),
+      );
     });
   });
 }

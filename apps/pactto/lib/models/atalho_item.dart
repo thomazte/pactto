@@ -1,14 +1,15 @@
-import 'package:dominio/dominio.dart';
+enum ModalidadeItem {
+  hora('Hora'),
+  valorFechado('Valor fechado'),
+  mensalidade('Mensalidade'),
+  licenca('Licença');
 
-class AtalhoItem {
-  const AtalhoItem(this.rotulo, this.tipo);
+  const ModalidadeItem(this.rotulo);
 
   final String rotulo;
-  final TipoItem tipo;
-}
 
-const atalhosItem = <AtalhoItem>[
-  AtalhoItem('Hora de desenvolvimento', TipoItem.maoDeObra),
-  AtalhoItem('Suporte', TipoItem.maoDeObra),
-  AtalhoItem('Licença', TipoItem.material),
-];
+  /// Mensalidade fica fora do total único do projeto.
+  bool get somaNoOrcamento => this != mensalidade;
+
+  bool get informaQuantidade => this == hora || this == licenca;
+}
