@@ -72,11 +72,11 @@ Falha ao gerar ou entregar o PDF mostra "Não foi possível gerar o PDF." No nav
 
 A empresa é gravada em `SharedPreferences` a cada alteração, nas chaves `empresa_nome`, `empresa_telefone`, `empresa_email` e `empresa_pix`. O logo fica em `empresa_logo`, em Base64. Não há conta nem servidor.
 
-O logo é escolhido em "Sua empresa". Aceita PNG ou JPG de até 1 MB que o gerador de PDF consiga ler. "Remover" apaga a imagem gravada.
+O logo padrão, `assets/logo_padrao.jpg`, vem com o aplicativo e aparece enquanto o prestador não escolhe outro. "Trocar logo", em "Sua empresa", aceita PNG ou JPG de até 1 MB que o gerador de PDF consiga ler. "Usar o padrão" apaga a imagem escolhida e volta ao logo do aplicativo.
 
 Cada proposta tem um número, exibido com quatro dígitos: `0012`. O próximo número fica em `proposta_proximo_numero` e começa em 1. Ele só avança depois que o PDF é impresso, compartilhado ou baixado. Um cancelamento mantém o mesmo número.
 
-O PDF é A4, com as fontes DejaVu embutidas, para o texto em português sair corretamente. Itens que não cabem numa página continuam na seguinte, e a partir de duas páginas o rodapé traz o número da proposta e a página. O logo, quando existe, fica num quadro branco à direita do cabeçalho azul. O arquivo se chama `proposta-<número>-<cliente>.pdf`, com o nome do cliente sem acento, em minúsculas e com hífens, ou `proposta-<número>.pdf` sem cliente. No celular, o aplicativo abre a impressão do sistema e, se ela falhar, oferece compartilhamento. No navegador, o arquivo é compartilhado para download.
+O PDF é A4, com as fontes DejaVu embutidas, para o texto em português sair corretamente. Itens que não cabem numa página continuam na seguinte, e a partir de duas páginas o rodapé traz o número da proposta e a página. O logo ocupa um quadrado de cantos arredondados à direita do cabeçalho azul. Imagem que não for quadrada é recortada ao centro. O arquivo se chama `proposta-<número>-<cliente>.pdf`, com o nome do cliente sem acento, em minúsculas e com hífens, ou `proposta-<número>.pdf` sem cliente. No celular, o aplicativo abre a impressão do sistema e, se ela falhar, oferece compartilhamento. No navegador, o arquivo é compartilhado para download.
 
 A folha e o PDF informam a data de emissão e a data de validade, 7 dias depois. As duas seguem o dia civil de São Paulo, pela regra da seção 5.3.
 

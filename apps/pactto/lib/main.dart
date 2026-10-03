@@ -8,5 +8,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final empresa = await const EmpresaLocal().carregar();
   final numero = await const NumeracaoLocal().carregar();
-  runApp(PrestadorApp(empresa: empresa, numero: numero));
+  final logoPadrao = await carregarLogoPadrao();
+  runApp(
+    PrestadorApp(empresa: empresa, numero: numero, logoPadrao: logoPadrao),
+  );
 }

@@ -342,11 +342,11 @@ class _Logo extends StatelessWidget {
           onPressed: () => _escolher(context),
           child: Text(logo == null ? 'Escolher logo' : 'Trocar logo'),
         ),
-        if (logo != null)
+        if (controller.temLogoProprio)
           TextButton(
-            key: const Key('remover_logo'),
-            onPressed: controller.removerLogo,
-            child: const Text('Remover'),
+            key: const Key('logo_padrao'),
+            onPressed: controller.usarLogoPadrao,
+            child: const Text('Usar o padrão'),
           ),
       ],
     );

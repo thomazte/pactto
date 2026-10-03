@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/proposta_controller.dart';
@@ -11,10 +12,12 @@ class TelaProposta extends StatefulWidget {
     super.key,
     this.empresa = const Empresa(),
     this.numero = 1,
+    this.logoPadrao,
   });
 
   final Empresa empresa;
   final int numero;
+  final Uint8List? logoPadrao;
 
   @override
   State<TelaProposta> createState() => _TelaPropostaState();
@@ -24,6 +27,7 @@ class _TelaPropostaState extends State<TelaProposta> {
   late final PropostaController _controller = PropostaController(
     empresa: widget.empresa,
     numero: widget.numero,
+    logoPadrao: widget.logoPadrao,
   );
 
   @override

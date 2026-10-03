@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pactto/controllers/proposta_controller.dart';
+import 'package:pactto/services/empresa_local.dart';
 import 'package:pactto/services/numeracao_local.dart';
 import 'package:pactto/services/pdf_proposta.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -101,8 +102,30 @@ void main() {
     expect(controller.definirLogo(png), isNull);
     expect(controller.logo, png);
 
-    controller.removerLogo();
+    controller.usarLogoPadrao();
     expect(controller.logo, isNull);
+  });
+
+  test('o logo padrão vale até a empresa escolher outro', () async {
+    final padrao = await carregarLogoPadrao();
+    expect(padrao, isNotNull);
+    expect(imagemAceitaNoPdf(padrao!), isTrue);
+
+    final controller = PropostaController(logoPadrao: padrao);
+    addTearDown(controller.dispose);
+    expect(controller.logo, padrao);
+    expect(controller.temLogoProprio, isFalse);
+
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    );
+    expect(controller.definirLogo(png), isNull);
+    expect(controller.logo, png);
+    expect(controller.temLogoProprio, isTrue);
+
+    controller.usarLogoPadrao();
+    expect(controller.logo, padrao);
+    expect(controller.temLogoProprio, isFalse);
   });
 
   test('item inválido não entra na lista e explica o motivo', () {

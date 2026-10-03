@@ -1,9 +1,19 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/empresa.dart';
+
+/// Logo usado enquanto o prestador não escolhe outro.
+Future<Uint8List?> carregarLogoPadrao() async {
+  try {
+    final dados = await rootBundle.load('assets/logo_padrao.jpg');
+    return dados.buffer.asUint8List();
+  } catch (_) {
+    return null;
+  }
+}
 
 class EmpresaLocal {
   const EmpresaLocal();

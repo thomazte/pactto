@@ -19,6 +19,7 @@ class PropostaController extends ChangeNotifier {
   PropostaController({
     Empresa empresa = const Empresa(),
     this.numero = 1,
+    this.logoPadrao,
     EmpresaLocal? armazenamento,
     NumeracaoLocal? numeracao,
     PdfPropostaService? pdf,
@@ -27,7 +28,7 @@ class PropostaController extends ChangeNotifier {
        _numeracao = numeracao ?? const NumeracaoLocal(),
        _pdf = pdf ?? const PdfPropostaService(),
        _agora = agora ?? DateTime.now,
-       logo = empresa.logo {
+       _logoProprio = empresa.logo {
     empresaNome = TextEditingController(text: empresa.nome);
     empresaTelefone = TextEditingController(
       text: formatarTelefone(empresa.telefone),
@@ -45,7 +46,14 @@ class PropostaController extends ChangeNotifier {
 
   /// Número desta proposta. Avança quando o PDF chega ao cliente.
   int numero;
-  Uint8List? logo;
+
+  /// Logo que vale enquanto a empresa não escolhe outro.
+  final Uint8List? logoPadrao;
+  Uint8List? _logoProprio;
+
+  Uint8List? get logo => _logoProprio ?? logoPadrao;
+
+  bool get temLogoProprio => _logoProprio != null;
 
   late final TextEditingController empresaNome;
   late final TextEditingController empresaTelefone;
@@ -202,14 +210,15 @@ class PropostaController extends ChangeNotifier {
     if (!imagemAceitaNoPdf(imagem)) {
       return 'Escolha uma imagem PNG ou JPG.';
     }
-    logo = imagem;
+    _logoProprio = imagem;
     _armazenamento.salvarLogo(imagem);
     _atualizar();
     return null;
   }
 
-  void removerLogo() {
-    logo = null;
+  /// Apaga o logo escolhido e volta ao padrão.
+  void usarLogoPadrao() {
+    _logoProprio = null;
     _armazenamento.salvarLogo(null);
     _atualizar();
   }
