@@ -120,15 +120,14 @@ Future<pw.Document> montarPdfProposta(PropostaPdf proposta) async {
               ),
               if (logo != null) ...[
                 pw.SizedBox(width: espacoLogo),
-                pw.Container(
+                pw.SizedBox(
                   width: ladoLogo,
                   height: ladoLogo,
-                  padding: const pw.EdgeInsets.all(6),
-                  decoration: const pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.all(pw.Radius.circular(8)),
+                  child: pw.ClipRRect(
+                    horizontalRadius: 8,
+                    verticalRadius: 8,
+                    child: pw.Image(logo, fit: pw.BoxFit.cover),
                   ),
-                  child: pw.Image(logo, fit: pw.BoxFit.contain),
                 ),
               ],
             ],

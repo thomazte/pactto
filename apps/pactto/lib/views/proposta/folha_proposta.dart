@@ -129,16 +129,15 @@ class FolhaProposta extends StatelessWidget {
                     ),
                     if (logo != null) ...[
                       const SizedBox(width: 16),
-                      Container(
+                      ClipRRect(
                         key: const Key('logo_folha'),
-                        width: 56,
-                        height: 56,
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(
+                          logo,
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
                         ),
-                        child: Image.memory(logo, fit: BoxFit.contain),
                       ),
                     ],
                   ],

@@ -326,7 +326,7 @@ class _Logo extends StatelessWidget {
         Container(
           width: 48,
           height: 48,
-          padding: const EdgeInsets.all(4),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -334,7 +334,7 @@ class _Logo extends StatelessWidget {
           ),
           child: logo == null
               ? const Icon(Icons.image_outlined, color: Cores.suave)
-              : Image.memory(logo, fit: BoxFit.contain),
+              : Image.memory(logo, fit: BoxFit.cover),
         ),
         const SizedBox(width: 10),
         TextButton(
