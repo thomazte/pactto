@@ -72,6 +72,8 @@ Falha ao gerar ou entregar o PDF mostra "Não foi possível gerar o PDF." No nav
 
 A empresa é gravada em `SharedPreferences` a cada alteração, nas chaves `empresa_nome`, `empresa_telefone`, `empresa_email` e `empresa_pix`. O logo fica em `empresa_logo`, em Base64. Não há conta nem servidor.
 
+Os dados padrão da empresa ficam em `apps/pactto/lib/core/constants/empresa_padrao.dart`: nome, telefone, e-mail e Pix (o CNPJ). Eles preenchem "Sua empresa" quando o aparelho não tem outro valor gravado. O prestador pode editar cada campo, e um campo deixado vazio volta ao padrão na próxima abertura.
+
 O logo padrão, `assets/logo_padrao.jpg`, vem com o aplicativo e aparece enquanto o prestador não escolhe outro. "Trocar logo", em "Sua empresa", aceita PNG ou JPG de até 1 MB que o gerador de PDF consiga ler. "Usar o padrão" apaga a imagem escolhida e volta ao logo do aplicativo.
 
 Cada proposta tem um número, exibido com quatro dígitos: `0012`. O próximo número fica em `proposta_proximo_numero` e começa em 1. Ele só avança depois que o PDF é impresso, compartilhado ou baixado. Um cancelamento mantém o mesmo número.

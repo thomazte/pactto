@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/constants/empresa_padrao.dart';
 import '../models/empresa.dart';
 
 /// Logo usado enquanto o prestador não escolhe outro.
@@ -24,19 +25,25 @@ class EmpresaLocal {
   static const _pix = 'empresa_pix';
   static const _logo = 'empresa_logo';
 
+  /// Campo vazio ou nunca gravado volta ao valor de [empresaPadrao].
   Future<Empresa> carregar() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      String ler(String chave, String padrao) {
+        final valor = prefs.getString(chave)?.trim() ?? '';
+        return valor.isEmpty ? padrao : valor;
+      }
+
       final logo = prefs.getString(_logo);
       return Empresa(
-        nome: prefs.getString(_nome) ?? '',
-        telefone: prefs.getString(_telefone) ?? '',
-        email: prefs.getString(_email) ?? '',
-        pix: prefs.getString(_pix) ?? '',
+        nome: ler(_nome, empresaPadrao.nome),
+        telefone: ler(_telefone, empresaPadrao.telefone),
+        email: ler(_email, empresaPadrao.email),
+        pix: ler(_pix, empresaPadrao.pix),
         logo: logo == null ? null : base64Decode(logo),
       );
     } catch (_) {
-      return const Empresa();
+      return empresaPadrao;
     }
   }
 
