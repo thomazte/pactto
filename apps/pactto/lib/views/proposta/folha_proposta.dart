@@ -33,6 +33,7 @@ class FolhaProposta extends StatelessWidget {
     final empresaPix = controller.pixEmpresa;
     final clienteNome = controller.nomeCliente;
     final clienteContato = controller.contatoCliente;
+    final logo = controller.logo;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Cores.papel,
@@ -55,67 +56,91 @@ class FolhaProposta extends StatelessWidget {
               color: Cores.azul,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(28, 22, 28, 20),
-                child: Column(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'PROPOSTA',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        empresaNome ?? 'Sua empresa',
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: empresaNome == null
-                              ? Colors.white.withValues(alpha: 0.65)
-                              : Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                    ),
-                    if (empresaLinhas.isNotEmpty || empresaPix != null)
-                      const SizedBox(height: 6),
-                    for (final linha in empresaLinhas)
-                      Text(
-                        linha,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          height: 1.35,
-                        ),
-                      ),
-                    if (empresaPix != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Row(
-                          children: [
-                            const MarcaPix(tamanho: 14, cor: Colors.white),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                empresaPix,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  height: 1.35,
-                                ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'PROPOSTA Nº ${controller.numeroFormatado}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              empresaNome ?? 'Sua empresa',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: empresaNome == null
+                                    ? Colors.white.withValues(alpha: 0.65)
+                                    : Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.4,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          if (empresaLinhas.isNotEmpty || empresaPix != null)
+                            const SizedBox(height: 6),
+                          for (final linha in empresaLinhas)
+                            Text(
+                              linha,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                height: 1.35,
+                              ),
+                            ),
+                          if (empresaPix != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Row(
+                                children: [
+                                  const MarcaPix(
+                                    tamanho: 14,
+                                    cor: Colors.white,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      empresaPix,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
+                    ),
+                    if (logo != null) ...[
+                      const SizedBox(width: 16),
+                      Container(
+                        key: const Key('logo_folha'),
+                        width: 56,
+                        height: 56,
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Image.memory(logo, fit: BoxFit.contain),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -142,9 +167,11 @@ class FolhaProposta extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 2),
-                  const Text(
-                    'Válida por 7 dias.',
-                    style: TextStyle(color: Cores.suave, fontSize: 13),
+                  Text(
+                    'Emitida em ${controller.emitidaEm}. '
+                    'Válida até ${controller.validaAte}.',
+                    key: const Key('datas'),
+                    style: const TextStyle(color: Cores.suave, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
                   if (linhas.isEmpty)

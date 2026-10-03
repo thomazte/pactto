@@ -10,6 +10,7 @@ import '../models/linha_digitada.dart';
 import '../models/proposta_pdf.dart';
 import '../models/resumo_orcamento.dart';
 import '../services/empresa_local.dart';
+import '../services/numeracao_local.dart';
 import '../services/pdf_proposta.dart';
 
 enum ResultadoPdf { ignorado, gerado, baixado, cancelado, falha }
@@ -17,10 +18,16 @@ enum ResultadoPdf { ignorado, gerado, baixado, cancelado, falha }
 class PropostaController extends ChangeNotifier {
   PropostaController({
     Empresa empresa = const Empresa(),
+    this.numero = 1,
     EmpresaLocal? armazenamento,
+    NumeracaoLocal? numeracao,
     PdfPropostaService? pdf,
+    DateTime Function()? agora,
   }) : _armazenamento = armazenamento ?? const EmpresaLocal(),
-       _pdf = pdf ?? const PdfPropostaService() {
+       _numeracao = numeracao ?? const NumeracaoLocal(),
+       _pdf = pdf ?? const PdfPropostaService(),
+       _agora = agora ?? DateTime.now,
+       logo = empresa.logo {
     empresaNome = TextEditingController(text: empresa.nome);
     empresaTelefone = TextEditingController(
       text: formatarTelefone(empresa.telefone),
@@ -29,8 +36,16 @@ class PropostaController extends ChangeNotifier {
     empresaPix = TextEditingController(text: empresa.pix);
   }
 
+  static const validadeDias = 7;
+
   final EmpresaLocal _armazenamento;
+  final NumeracaoLocal _numeracao;
   final PdfPropostaService _pdf;
+  final DateTime Function() _agora;
+
+  /// Número desta proposta. Avança quando o PDF chega ao cliente.
+  int numero;
+  Uint8List? logo;
 
   late final TextEditingController empresaNome;
   late final TextEditingController empresaTelefone;
@@ -58,6 +73,14 @@ class PropostaController extends ChangeNotifier {
   String? get pixEmpresa => _limpo(empresaPix);
   String? get nomeCliente => _limpo(clienteNome);
   String? get contatoCliente => _limpo(clienteWhatsapp);
+
+  String get numeroFormatado => numero.toString().padLeft(4, '0');
+
+  String get emitidaEm => formatarData(dataCivilSaoPaulo(_agora()));
+
+  String get validaAte => formatarData(
+    calcularValidoAte(enviadoEm: _agora(), validadeDias: validadeDias),
+  );
 
   List<String> get linhasEmpresa => [
     ?_limpo(empresaTelefone),
@@ -169,6 +192,28 @@ class PropostaController extends ChangeNotifier {
     );
   }
 
+  static const limiteLogoBytes = 1024 * 1024;
+
+  /// Devolve o motivo da recusa, ou null quando o logo foi aceito.
+  String? definirLogo(Uint8List imagem) {
+    if (imagem.length > limiteLogoBytes) {
+      return 'Escolha uma imagem de até 1 MB.';
+    }
+    if (!imagemAceitaNoPdf(imagem)) {
+      return 'Escolha uma imagem PNG ou JPG.';
+    }
+    logo = imagem;
+    _armazenamento.salvarLogo(imagem);
+    _atualizar();
+    return null;
+  }
+
+  void removerLogo() {
+    logo = null;
+    _armazenamento.salvarLogo(null);
+    _atualizar();
+  }
+
   Future<ResultadoPdf> gerarPdf() async {
     final totais = resumo.totais;
     if (totais == null || linhas.isEmpty || gerandoPdf) {
@@ -179,34 +224,36 @@ class PropostaController extends ChangeNotifier {
     var gerou = false;
     var resultado = ResultadoPdf.falha;
     try {
-      final bytes = Uint8List.fromList(
-        await gerarPdfProposta(
-          PropostaPdf(
-            linhas: [
-              for (final linha in linhas)
-                if (linha.somaNoOrcamento)
-                  LinhaPdf(nome: linha.texto, detalhe: '', total: ''),
-            ],
-            mensalidades: [
-              for (final linha in linhas)
-                if (!linha.somaNoOrcamento) linha.texto,
-            ],
-            total: formatarReais(totais.totalCentavos),
-            desconto: totais.descontoCentavos == 0
-                ? null
-                : formatarReais(totais.descontoCentavos),
-            visita: totais.taxaDeslocamentoCentavos == 0
-                ? null
-                : formatarReais(totais.taxaDeslocamentoCentavos),
-            empresaNome: nomeEmpresa,
-            empresaLinhas: linhasEmpresa,
-            empresaPix: pixEmpresa,
-            clienteNome: nomeCliente,
-            clienteContato: contatoCliente,
-          ),
-        ),
+      final proposta = PropostaPdf(
+        numero: numero,
+        emitidaEm: emitidaEm,
+        validaAte: validaAte,
+        logo: logo,
+        linhas: [
+          for (final linha in linhas)
+            if (linha.somaNoOrcamento)
+              LinhaPdf(nome: linha.texto, detalhe: '', total: ''),
+        ],
+        mensalidades: [
+          for (final linha in linhas)
+            if (!linha.somaNoOrcamento) linha.texto,
+        ],
+        total: formatarReais(totais.totalCentavos),
+        desconto: totais.descontoCentavos == 0
+            ? null
+            : formatarReais(totais.descontoCentavos),
+        visita: totais.taxaDeslocamentoCentavos == 0
+            ? null
+            : formatarReais(totais.taxaDeslocamentoCentavos),
+        empresaNome: nomeEmpresa,
+        empresaLinhas: linhasEmpresa,
+        empresaPix: pixEmpresa,
+        clienteNome: nomeCliente,
+        clienteContato: contatoCliente,
       );
-      resultado = switch (await _pdf.entregar(bytes)) {
+      final bytes = Uint8List.fromList(await gerarPdfProposta(proposta));
+      final entrega = await _pdf.entregar(bytes, nome: proposta.nomeArquivo);
+      resultado = switch (entrega) {
         EntregaPdf.entregue => ResultadoPdf.gerado,
         EntregaPdf.baixado => ResultadoPdf.baixado,
         EntregaPdf.cancelado => ResultadoPdf.cancelado,
@@ -215,12 +262,14 @@ class PropostaController extends ChangeNotifier {
     } catch (_) {
       resultado = ResultadoPdf.falha;
     } finally {
+      if (gerou) numero++;
       if (!_descartado) {
         gerandoPdf = false;
         if (gerou) _limpar();
         _atualizar();
       }
     }
+    if (gerou) await _numeracao.salvar(numero);
     return resultado;
   }
 

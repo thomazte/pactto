@@ -1,4 +1,5 @@
 import 'package:dominio/dominio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/proposta_controller.dart';
@@ -77,6 +78,8 @@ class EntradaProposta extends StatelessWidget {
           ),
           onChanged: (_) => controller.aoEditarEmpresa(),
         ),
+        const SizedBox(height: 8),
+        _Logo(controller: controller),
         const SizedBox(height: 22),
         const _Secao('Cliente'),
         TextField(
@@ -287,6 +290,64 @@ class _CamposModalidade extends StatelessWidget {
         Expanded(child: valor),
         const SizedBox(width: 8),
         botao,
+      ],
+    );
+  }
+}
+
+class _Logo extends StatelessWidget {
+  const _Logo({required this.controller});
+
+  final PropostaController controller;
+
+  Future<void> _escolher(BuildContext context) async {
+    final mensageiro = ScaffoldMessenger.of(context);
+    String? mensagem;
+    try {
+      final arquivo = await FilePicker.pickFile(
+        dialogTitle: 'Logo da empresa',
+        type: FileType.custom,
+        allowedExtensions: const ['png', 'jpg', 'jpeg'],
+      );
+      if (arquivo == null) return;
+      mensagem = controller.definirLogo(await arquivo.readAsBytes());
+    } catch (_) {
+      mensagem = 'Não foi possível abrir a imagem.';
+    }
+    if (mensagem == null) return;
+    mensageiro.showSnackBar(SnackBar(content: Text(mensagem)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = controller.logo;
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Cores.linha),
+          ),
+          child: logo == null
+              ? const Icon(Icons.image_outlined, color: Cores.suave)
+              : Image.memory(logo, fit: BoxFit.contain),
+        ),
+        const SizedBox(width: 10),
+        TextButton(
+          key: const Key('escolher_logo'),
+          onPressed: () => _escolher(context),
+          child: Text(logo == null ? 'Escolher logo' : 'Trocar logo'),
+        ),
+        if (logo != null)
+          TextButton(
+            key: const Key('remover_logo'),
+            onPressed: controller.removerLogo,
+            child: const Text('Remover'),
+          ),
       ],
     );
   }

@@ -27,7 +27,7 @@ O ponto de entrada é `apps/pactto/lib/main.dart`. Um `flutter run` na raiz do r
 
 ## 2. Uso da tela
 
-Ao abrir, o aplicativo carrega nome, telefone, e-mail e Pix gravados no aparelho. O prestador informa o cliente, acrescenta itens e acompanha a folha ao lado, ou abaixo, em telas com menos de 900 px de largura.
+Ao abrir, o aplicativo carrega nome, telefone, e-mail, Pix, logo e o número da próxima proposta gravados no aparelho. O prestador informa o cliente, acrescenta itens e acompanha a folha ao lado, ou abaixo, em telas com menos de 900 px de largura.
 
 Cada item tem descrição, quantidade e valor. A quantidade vazia vale 1. Sem valor, o item não entra. Quantidade ou valor ilegível, quantidade zero ou valor negativo também impedem a entrada: o motivo aparece abaixo dos campos e some quando o prestador volta a digitar. Atalhos preenchem a descrição e o tipo:
 
@@ -70,11 +70,15 @@ Falha ao gerar ou entregar o PDF mostra "Não foi possível gerar o PDF." No nav
 
 ## 4. Persistência e PDF
 
-A empresa é gravada em `SharedPreferences` a cada alteração, nas chaves `empresa_nome`, `empresa_telefone`, `empresa_email` e `empresa_pix`. Não há conta nem servidor.
+A empresa é gravada em `SharedPreferences` a cada alteração, nas chaves `empresa_nome`, `empresa_telefone`, `empresa_email` e `empresa_pix`. O logo fica em `empresa_logo`, em Base64. Não há conta nem servidor.
 
-O PDF é uma página A4, com as fontes DejaVu embutidas, para o texto em português sair corretamente. O arquivo se chama `proposta.pdf`. No celular, o aplicativo abre a impressão do sistema e, se ela falhar, oferece compartilhamento. No navegador, o arquivo é compartilhado para download.
+O logo é escolhido em "Sua empresa". Aceita PNG ou JPG de até 1 MB que o gerador de PDF consiga ler. "Remover" apaga a imagem gravada.
 
-A folha e o PDF informam validade de 7 dias. Esse prazo é texto da proposta, não uma data calculada na tela.
+Cada proposta tem um número, exibido com quatro dígitos: `0012`. O próximo número fica em `proposta_proximo_numero` e começa em 1. Ele só avança depois que o PDF é impresso, compartilhado ou baixado. Um cancelamento mantém o mesmo número.
+
+O PDF é A4, com as fontes DejaVu embutidas, para o texto em português sair corretamente. Itens que não cabem numa página continuam na seguinte, e a partir de duas páginas o rodapé traz o número da proposta e a página. O logo, quando existe, fica num quadro branco à direita do cabeçalho azul. O arquivo se chama `proposta-<número>-<cliente>.pdf`, com o nome do cliente sem acento, em minúsculas e com hífens, ou `proposta-<número>.pdf` sem cliente. No celular, o aplicativo abre a impressão do sistema e, se ela falhar, oferece compartilhamento. No navegador, o arquivo é compartilhado para download.
+
+A folha e o PDF informam a data de emissão e a data de validade, 7 dias depois. As duas seguem o dia civil de São Paulo, pela regra da seção 5.3.
 
 ## 5. Regras de domínio ainda fora da tela
 

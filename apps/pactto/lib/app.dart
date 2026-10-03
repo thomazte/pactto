@@ -5,9 +5,16 @@ import 'models/empresa.dart';
 import 'views/proposta/tela_proposta.dart';
 
 class PrestadorApp extends StatelessWidget {
-  const PrestadorApp({super.key, this.empresa = const Empresa()});
+  const PrestadorApp({
+    super.key,
+    this.empresa = const Empresa(),
+    this.numero = 1,
+  });
 
   final Empresa empresa;
+
+  /// Número da próxima proposta.
+  final int numero;
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +22,7 @@ class PrestadorApp extends StatelessWidget {
       title: 'Pactto',
       debugShowCheckedModeBanner: false,
       theme: temaPrestador(),
-      home: TelaProposta(empresa: empresa),
+      home: TelaProposta(empresa: empresa, numero: numero),
     );
   }
 }

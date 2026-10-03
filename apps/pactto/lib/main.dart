@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'services/empresa_local.dart';
+import 'services/numeracao_local.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final empresa = await const EmpresaLocal().carregar();
-  runApp(PrestadorApp(empresa: empresa));
+  final numero = await const NumeracaoLocal().carregar();
+  runApp(PrestadorApp(empresa: empresa, numero: numero));
 }

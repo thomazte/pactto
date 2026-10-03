@@ -32,3 +32,10 @@ bool propostaVencida({
   final limite = DateTime.utc(validoAte.toUtc().year, validoAte.toUtc().month, validoAte.toUtc().day);
   return hoje.isAfter(limite);
 }
+
+/// Data civil no formato pt-BR. 3 de outubro de 2026 vira "03/10/2026".
+String formatarData(DateTime data) {
+  final dia = data.day.toString().padLeft(2, '0');
+  final mes = data.month.toString().padLeft(2, '0');
+  return '$dia/$mes/${data.year}';
+}

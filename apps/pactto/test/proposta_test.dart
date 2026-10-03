@@ -8,7 +8,15 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const PrestadorApp());
+    await tester.pumpWidget(const PrestadorApp(numero: 42));
+
+    expect(find.text('PROPOSTA Nº 0042'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('datas'))).data,
+      matches(
+        RegExp(r'^Emitida em \d\d/\d\d/\d{4}\. Válida até \d\d/\d\d/\d{4}\.$'),
+      ),
+    );
 
     await tester.enterText(find.byKey(const Key('quantidade')), '2,5');
     await tester.enterText(find.byKey(const Key('valor')), '33,33');

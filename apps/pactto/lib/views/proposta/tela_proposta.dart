@@ -7,9 +7,14 @@ import 'entrada_proposta.dart';
 import 'folha_proposta.dart';
 
 class TelaProposta extends StatefulWidget {
-  const TelaProposta({super.key, this.empresa = const Empresa()});
+  const TelaProposta({
+    super.key,
+    this.empresa = const Empresa(),
+    this.numero = 1,
+  });
 
   final Empresa empresa;
+  final int numero;
 
   @override
   State<TelaProposta> createState() => _TelaPropostaState();
@@ -18,6 +23,7 @@ class TelaProposta extends StatefulWidget {
 class _TelaPropostaState extends State<TelaProposta> {
   late final PropostaController _controller = PropostaController(
     empresa: widget.empresa,
+    numero: widget.numero,
   );
 
   @override

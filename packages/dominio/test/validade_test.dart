@@ -60,4 +60,9 @@ void main() {
       DateTime.utc(2026, 9, 29),
     );
   });
+
+  test('EXP-07 data civil em pt-BR', () {
+    expect(formatarData(DateTime.utc(2026, 10, 3)), '03/10/2026');
+    expect(formatarData(DateTime.utc(2026, 12, 25)), '25/12/2026');
+  });
 }
