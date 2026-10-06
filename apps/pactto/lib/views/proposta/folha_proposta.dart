@@ -276,6 +276,24 @@ class FolhaProposta extends StatelessWidget {
                       controller.gerandoPdf ? 'Gerando PDF…' : 'Gerar PDF',
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const Key('salvar_proposta_folha'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () {
+                      final erro = controller.salvarProposta();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(erro ?? 'Proposta salva.')),
+                      );
+                    },
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: const Text('Salvar proposta'),
+                  ),
                 ],
               ),
             ),

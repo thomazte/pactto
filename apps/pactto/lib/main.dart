@@ -4,6 +4,7 @@ import 'app.dart';
 import 'services/empresa_local.dart';
 import 'services/modelos_local.dart';
 import 'services/numeracao_local.dart';
+import 'services/propostas_local.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,6 +12,7 @@ Future<void> main() async {
   final numero = await const NumeracaoLocal().carregar();
   final logoPadrao = await carregarLogoPadrao();
   final modelos = await const ModelosLocal().carregar();
+  final propostas = await const PropostasLocal().carregar();
   runApp(
     PrestadorApp(
       empresa: empresa,
@@ -18,6 +20,7 @@ Future<void> main() async {
       logoPadrao: logoPadrao,
       modelos: modelos.modelos,
       modeloId: modelos.escolhido,
+      propostas: propostas,
     ),
   );
 }

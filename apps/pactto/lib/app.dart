@@ -5,6 +5,7 @@ import 'core/theme/tema.dart';
 import 'core/constants/modelos_padrao.dart';
 import 'models/empresa.dart';
 import 'models/modelo_proposta.dart';
+import 'models/proposta_salva.dart';
 import 'views/proposta/tela_proposta.dart';
 
 class PrestadorApp extends StatelessWidget {
@@ -15,6 +16,7 @@ class PrestadorApp extends StatelessWidget {
     this.logoPadrao,
     this.modelos = modelosPadrao,
     this.modeloId,
+    this.propostas = const [],
   });
 
   final Empresa empresa;
@@ -30,6 +32,9 @@ class PrestadorApp extends StatelessWidget {
   /// Modelo que preenche os textos ao abrir. Null é "sem modelo".
   final String? modeloId;
 
+  /// Propostas guardadas no aparelho, a mais recente primeiro.
+  final List<PropostaSalva> propostas;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -42,6 +47,7 @@ class PrestadorApp extends StatelessWidget {
         logoPadrao: logoPadrao,
         modelos: modelos,
         modeloId: modeloId,
+        propostas: propostas,
       ),
     );
   }

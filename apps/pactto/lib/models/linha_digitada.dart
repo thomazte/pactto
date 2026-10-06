@@ -34,6 +34,25 @@ class LinhaDigitada {
     );
   }
 
+  factory LinhaDigitada.deJson(Map<String, dynamic> json) {
+    return LinhaDigitada(
+      modalidade: ModalidadeItem.values.firstWhere(
+        (modalidade) => modalidade.name == json['modalidade'],
+        orElse: () => ModalidadeItem.valorFechado,
+      ),
+      descricao: json['descricao'] as String? ?? '',
+      quantidadeMilesimos: json['quantidadeMilesimos'] as int? ?? 1000,
+      valorCentavos: json['valorCentavos'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> paraJson() => {
+    'modalidade': modalidade.name,
+    'descricao': descricao,
+    'quantidadeMilesimos': quantidadeMilesimos,
+    'valorCentavos': valorCentavos,
+  };
+
   final ModalidadeItem modalidade;
   final String descricao;
   final int quantidadeMilesimos;

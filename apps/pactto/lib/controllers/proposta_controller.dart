@@ -9,11 +9,13 @@ import '../models/empresa.dart';
 import '../models/linha_digitada.dart';
 import '../models/modelo_proposta.dart';
 import '../models/proposta_pdf.dart';
+import '../models/proposta_salva.dart';
 import '../models/resumo_orcamento.dart';
 import '../services/empresa_local.dart';
 import '../services/modelos_local.dart';
 import '../services/numeracao_local.dart';
 import '../services/pedido_ia.dart';
+import '../services/propostas_local.dart';
 import '../services/pdf_proposta.dart';
 
 enum ResultadoPdf { ignorado, gerado, baixado, cancelado, falha }
@@ -48,15 +50,19 @@ class PropostaController extends ChangeNotifier {
     this.logoPadrao,
     List<ModeloProposta> modelos = const [],
     String? modeloId,
+    List<PropostaSalva> propostas = const [],
     EmpresaLocal? armazenamento,
     NumeracaoLocal? numeracao,
     ModelosLocal? armazenamentoModelos,
+    PropostasLocal? armazenamentoPropostas,
     PdfPropostaService? pdf,
     DateTime Function()? agora,
   }) : _armazenamento = armazenamento ?? const EmpresaLocal(),
        _numeracao = numeracao ?? const NumeracaoLocal(),
        _modelosLocal = armazenamentoModelos ?? const ModelosLocal(),
        modelos = List.of(modelos),
+       _propostasLocal = armazenamentoPropostas ?? const PropostasLocal(),
+       propostas = List.of(propostas),
        _pdf = pdf ?? const PdfPropostaService(),
        _agora = agora ?? DateTime.now,
        _logoProprio = empresa.logo {
@@ -73,11 +79,25 @@ class PropostaController extends ChangeNotifier {
   final EmpresaLocal _armazenamento;
   final NumeracaoLocal _numeracao;
   final ModelosLocal _modelosLocal;
+  final PropostasLocal _propostasLocal;
   final PdfPropostaService _pdf;
   final DateTime Function() _agora;
 
-  /// Número desta proposta. Avança quando o PDF chega ao cliente.
+  /// Número da próxima proposta nova. Avança quando o PDF de uma proposta
+  /// nova chega ao cliente.
   int numero;
+
+  /// Propostas guardadas no aparelho, a mais recente primeiro.
+  final List<PropostaSalva> propostas;
+
+  /// Proposta salva em edição. Null é uma proposta que ainda não foi salva.
+  String? propostaId;
+
+  /// Número que a proposta em edição já recebeu num PDF anterior.
+  int? numeroProposta;
+
+  /// Proposta reaberta mantém o número; proposta nova usa o próximo.
+  int get numeroAtual => numeroProposta ?? numero;
 
   /// Logo que vale enquanto a empresa não escolhe outro.
   final Uint8List? logoPadrao;
@@ -157,7 +177,7 @@ class PropostaController extends ChangeNotifier {
     _atualizar();
   }
 
-  String get numeroFormatado => numero.toString().padLeft(4, '0');
+  String get numeroFormatado => numeroAtual.toString().padLeft(4, '0');
 
   String get emitidaEm => formatarData(dataCivilSaoPaulo(_agora()));
 
@@ -447,10 +467,12 @@ class PropostaController extends ChangeNotifier {
     gerandoPdf = true;
     _atualizar();
     var gerou = false;
+    // Proposta reaberta reaproveita o número que já tem.
+    final novaNumeracao = numeroProposta == null;
     var resultado = ResultadoPdf.falha;
     try {
       final proposta = PropostaPdf(
-        numero: numero,
+        numero: numeroAtual,
         emitidaEm: emitidaEm,
         validaAte: validaAte,
         logo: logo,
@@ -492,15 +514,103 @@ class PropostaController extends ChangeNotifier {
     } catch (_) {
       resultado = ResultadoPdf.falha;
     } finally {
-      if (gerou) numero++;
+      if (gerou) {
+        // O PDF entregue fica salvo com o número que levou.
+        if (!_descartado) _registrar(numeroAtual);
+        if (novaNumeracao) numero++;
+      }
       if (!_descartado) {
         gerandoPdf = false;
         if (gerou) _limpar();
         _atualizar();
       }
     }
-    if (gerou) await _numeracao.salvar(numero);
+    if (gerou && novaNumeracao) await _numeracao.salvar(numero);
     return resultado;
+  }
+
+  /// Guarda a proposta atual. Devolve o motivo da recusa, ou null.
+  String? salvarProposta() {
+    if (nomeCliente == null && linhas.isEmpty) {
+      return 'Preencha o cliente ou um item antes de salvar.';
+    }
+    _registrar(numeroProposta);
+    _atualizar();
+    return null;
+  }
+
+  /// Troca o que está na tela pela proposta salva.
+  void abrirProposta(String id) {
+    final salva = propostas.where((proposta) => proposta.id == id).firstOrNull;
+    if (salva == null) return;
+    _limpar();
+    clienteNome.text = salva.clienteNome;
+    clienteWhatsapp.text = salva.clienteWhatsapp;
+    clienteDocumento.text = salva.clienteDocumento;
+    modeloId = _modelo(salva.modeloId)?.id;
+    for (final texto in textos) {
+      texto.dispose();
+    }
+    textos
+      ..clear()
+      ..addAll([for (final texto in salva.textos) TextoEditavel(texto)]);
+    incluirAceite = salva.aceite;
+    validade.text = '${salva.validadeDias}';
+    linhas.addAll(salva.linhas);
+    descontoTipo = salva.descontoTipo;
+    desconto.text = salva.desconto;
+    visita.text = salva.visita;
+    mostrarAjustes = salva.desconto.isNotEmpty || salva.visita.isNotEmpty;
+    propostaId = salva.id;
+    numeroProposta = salva.numero;
+    _atualizar();
+  }
+
+  /// Limpa a tela para uma proposta nova. A salva continua guardada.
+  void novaProposta() {
+    _limpar();
+    _atualizar();
+  }
+
+  /// Apaga a proposta salva. Se era a aberta, o que está na tela fica como
+  /// proposta nova.
+  void excluirProposta(String id) {
+    propostas.removeWhere((proposta) => proposta.id == id);
+    if (propostaId == id) {
+      propostaId = null;
+      numeroProposta = null;
+    }
+    _propostasLocal.salvar(propostas);
+    _atualizar();
+  }
+
+  void _registrar(int? numeroDaProposta) {
+    final id = propostaId ?? _agora().microsecondsSinceEpoch.toString();
+    final salva = PropostaSalva(
+      id: id,
+      atualizadaEm: _agora(),
+      numero: numeroDaProposta,
+      clienteNome: clienteNome.text.trim(),
+      clienteWhatsapp: clienteWhatsapp.text.trim(),
+      clienteDocumento: clienteDocumento.text.trim(),
+      modeloId: modeloId,
+      textos: [
+        for (final texto in textos)
+          if (!texto.valor.vazio) texto.valor,
+      ],
+      aceite: incluirAceite,
+      validadeDias: validadeDias ?? ModeloProposta.validadePadrao,
+      linhas: List.of(linhas),
+      descontoTipo: descontoTipo,
+      desconto: desconto.text.trim(),
+      visita: visita.text.trim(),
+    );
+    propostas
+      ..removeWhere((proposta) => proposta.id == id)
+      ..insert(0, salva);
+    propostaId = id;
+    numeroProposta = numeroDaProposta;
+    _propostasLocal.salvar(propostas);
   }
 
   void _limpar() {
@@ -518,6 +628,8 @@ class PropostaController extends ChangeNotifier {
     modalidade = ModalidadeItem.hora;
     descontoTipo = TipoDesconto.percentual;
     mostrarAjustes = false;
+    propostaId = null;
+    numeroProposta = null;
     _carregarModelo();
   }
 

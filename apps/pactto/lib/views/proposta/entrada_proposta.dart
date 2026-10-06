@@ -10,6 +10,7 @@ import '../../core/theme/tema.dart';
 import '../../core/widgets/marca_pix.dart';
 import '../../models/atalho_item.dart';
 import '../../models/modelo_proposta.dart';
+import '../../models/proposta_salva.dart';
 
 class EntradaProposta extends StatelessWidget {
   const EntradaProposta({super.key, required this.controller});
@@ -32,13 +33,23 @@ class EntradaProposta extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Nova proposta', style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          controller.propostaId == null
+              ? 'Nova proposta'
+              : controller.numeroProposta == null
+              ? 'Rascunho salvo'
+              : 'Proposta nº ${controller.numeroFormatado}',
+          key: const Key('titulo_proposta'),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 6),
         const Text(
           'Os dados da empresa ficam salvos. Preencha o cliente, o item e gere o PDF.',
           style: TextStyle(color: Cores.suave, height: 1.4),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 8),
+        _Propostas(controller: controller),
+        const SizedBox(height: 14),
         const _Secao('Sua empresa'),
         TextField(
           key: const Key('empresa_nome'),
@@ -366,6 +377,129 @@ class _Logo extends StatelessWidget {
             key: const Key('logo_padrao'),
             onPressed: controller.usarLogoPadrao,
             child: const Text('Usar o padrão'),
+          ),
+      ],
+    );
+  }
+}
+
+/// Salvar a proposta atual, reabrir uma salva e começar outra.
+class _Propostas extends StatelessWidget {
+  const _Propostas({required this.controller});
+
+  final PropostaController controller;
+
+  void _salvar(BuildContext context) {
+    final erro = controller.salvarProposta();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(erro ?? 'Proposta salva.')));
+  }
+
+  Future<void> _excluir(BuildContext context, PropostaSalva proposta) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir a proposta de ${_nome(proposta)}?'),
+        content: const Text('Ela some da lista de propostas salvas.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou == true) controller.excluirProposta(proposta.id);
+  }
+
+  Future<void> _abrirLista(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final propostas = controller.propostas;
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+            ),
+            child: propostas.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    child: Text(
+                      'Nenhuma proposta salva. Gerar o PDF também salva a '
+                      'proposta.',
+                      style: TextStyle(color: Cores.suave, height: 1.4),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: propostas.length,
+                    itemBuilder: (context, indice) {
+                      final proposta = propostas[indice];
+                      final numero = proposta.numero;
+                      final data = formatarData(
+                        dataCivilSaoPaulo(proposta.atualizadaEm),
+                      );
+                      return ListTile(
+                        key: Key('proposta_${proposta.id}'),
+                        title: Text(_nome(proposta)),
+                        subtitle: Text(
+                          '${numero == null ? 'Rascunho' : 'Nº ${numero.toString().padLeft(4, '0')}'}'
+                          ' · salva em $data',
+                        ),
+                        selected: proposta.id == controller.propostaId,
+                        onTap: () {
+                          controller.abrirProposta(proposta.id);
+                          Navigator.pop(context);
+                        },
+                        trailing: IconButton(
+                          tooltip: 'Excluir proposta',
+                          onPressed: () => _excluir(context, proposta),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      );
+                    },
+                  ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _nome(PropostaSalva proposta) =>
+      proposta.clienteNome.isEmpty ? 'Sem cliente' : proposta.clienteNome;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 4,
+      children: [
+        TextButton.icon(
+          key: const Key('salvar_proposta'),
+          onPressed: () => _salvar(context),
+          icon: const Icon(Icons.save_outlined, size: 18),
+          label: const Text('Salvar proposta'),
+        ),
+        TextButton.icon(
+          key: const Key('propostas_salvas'),
+          onPressed: () => _abrirLista(context),
+          icon: const Icon(Icons.folder_open_outlined, size: 18),
+          label: Text('Propostas salvas (${controller.propostas.length})'),
+        ),
+        if (controller.propostaId != null)
+          TextButton.icon(
+            key: const Key('nova_proposta'),
+            onPressed: controller.novaProposta,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Nova proposta'),
           ),
       ],
     );

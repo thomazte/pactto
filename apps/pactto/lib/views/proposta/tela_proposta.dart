@@ -5,6 +5,7 @@ import '../../controllers/proposta_controller.dart';
 import '../../core/theme/tema.dart';
 import '../../models/empresa.dart';
 import '../../models/modelo_proposta.dart';
+import '../../models/proposta_salva.dart';
 import 'entrada_proposta.dart';
 import 'folha_proposta.dart';
 
@@ -16,6 +17,7 @@ class TelaProposta extends StatefulWidget {
     this.logoPadrao,
     this.modelos = const [],
     this.modeloId,
+    this.propostas = const [],
   });
 
   final Empresa empresa;
@@ -23,6 +25,7 @@ class TelaProposta extends StatefulWidget {
   final Uint8List? logoPadrao;
   final List<ModeloProposta> modelos;
   final String? modeloId;
+  final List<PropostaSalva> propostas;
 
   @override
   State<TelaProposta> createState() => _TelaPropostaState();
@@ -35,6 +38,7 @@ class _TelaPropostaState extends State<TelaProposta> {
     logoPadrao: widget.logoPadrao,
     modelos: widget.modelos,
     modeloId: widget.modeloId,
+    propostas: widget.propostas,
   );
 
   @override
