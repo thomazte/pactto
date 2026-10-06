@@ -37,6 +37,9 @@ class PropostaPdf {
     this.clienteNome,
     this.clienteContato,
     this.logo,
+    this.clienteDocumento,
+    this.empresaDocumento,
+    this.aceite = false,
     this.textosAntes = const [],
     this.textosDepois = const [],
   });
@@ -60,6 +63,13 @@ class PropostaPdf {
   final String? clienteNome;
   final String? clienteContato;
   final Uint8List? logo;
+
+  /// CPF ou CNPJ nas linhas de assinatura do aceite.
+  final String? clienteDocumento;
+  final String? empresaDocumento;
+
+  /// Fecha o PDF com validade, "De acordo" e linhas de assinatura.
+  final bool aceite;
 
   /// Textos do modelo, antes e depois da lista de itens.
   final List<TextoPdf> textosAntes;

@@ -95,6 +95,9 @@ class PropostaController extends ChangeNotifier {
   late final TextEditingController empresaPix;
   final clienteNome = TextEditingController();
   final clienteWhatsapp = TextEditingController();
+
+  /// CPF ou CNPJ do cliente, para a linha de assinatura do aceite.
+  final clienteDocumento = TextEditingController();
   final descricao = TextEditingController();
   final quantidade = TextEditingController();
   final valor = TextEditingController();
@@ -124,6 +127,34 @@ class PropostaController extends ChangeNotifier {
   String? get pixEmpresa => _limpo(empresaPix);
   String? get nomeCliente => _limpo(clienteNome);
   String? get contatoCliente => _limpo(clienteWhatsapp);
+  String? get documentoCliente => _limpo(clienteDocumento);
+
+  /// Aviso para CPF ou CNPJ com dígito errado. Não impede o PDF.
+  String? get erroDocumentoCliente {
+    final documento = documentoCliente;
+    if (documento == null) return null;
+    final digitos = somenteDigitos(documento);
+    final valido = digitos.length == 11
+        ? cpfValido(digitos)
+        : cnpjValido(digitos);
+    return valido ? null : 'CPF ou CNPJ inválido.';
+  }
+
+  /// O Pix vai como documento da empresa no aceite quando é CPF ou CNPJ.
+  String? get documentoEmpresa {
+    final pix = pixEmpresa;
+    if (pix == null) return null;
+    return cpfValido(pix) || cnpjValido(pix) ? pix : null;
+  }
+
+  /// Fecha a proposta com validade e assinaturas. Vem do modelo e pode ser
+  /// trocado só nesta proposta.
+  var incluirAceite = false;
+
+  void alternarAceite(bool incluir) {
+    incluirAceite = incluir;
+    _atualizar();
+  }
 
   String get numeroFormatado => numero.toString().padLeft(4, '0');
 
@@ -310,6 +341,7 @@ class PropostaController extends ChangeNotifier {
           : modelos[indice].id,
       nome: limpo,
       textos: valores,
+      aceite: incluirAceite,
     );
     if (indice < 0) {
       modelos.add(modelo);
@@ -412,6 +444,9 @@ class PropostaController extends ChangeNotifier {
         empresaPix: pixEmpresa,
         clienteNome: nomeCliente,
         clienteContato: contatoCliente,
+        clienteDocumento: documentoCliente,
+        empresaDocumento: documentoEmpresa,
+        aceite: incluirAceite,
         textosAntes: _textosPdf(PosicaoTexto.antes),
         textosDepois: _textosPdf(PosicaoTexto.depois),
       );
@@ -440,6 +475,7 @@ class PropostaController extends ChangeNotifier {
   void _limpar() {
     clienteNome.clear();
     clienteWhatsapp.clear();
+    clienteDocumento.clear();
     descricao.clear();
     quantidade.clear();
     valor.clear();
@@ -462,6 +498,7 @@ class PropostaController extends ChangeNotifier {
   }
 
   void _carregarTextos() {
+    incluirAceite = modeloAtual?.aceite ?? false;
     for (final texto in textos) {
       texto.dispose();
     }
@@ -510,6 +547,7 @@ class PropostaController extends ChangeNotifier {
     empresaPix.dispose();
     clienteNome.dispose();
     clienteWhatsapp.dispose();
+    clienteDocumento.dispose();
     descricao.dispose();
     quantidade.dispose();
     valor.dispose();

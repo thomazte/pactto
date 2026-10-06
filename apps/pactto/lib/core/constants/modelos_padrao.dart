@@ -5,6 +5,7 @@ const modelosPadrao = [
   ModeloProposta(
     id: 'sistema-sob-medida',
     nome: 'Sistema sob medida',
+    aceite: true,
     textos: [
       TextoProposta(
         titulo: 'Apresentação',
@@ -43,10 +44,14 @@ const modelosPadrao = [
             '- Equipamentos, impressoras e internet da empresa',
       ),
       TextoProposta(
-        titulo: 'Condições',
+        titulo: 'Prazos e condições',
         posicao: PosicaoTexto.depois,
         corpo:
-            '- Mensalidade a partir do mês seguinte à entrega\n'
+            '- Prazo de entrega: [X] dias úteis após a assinatura\n'
+            '- Desenvolvimento e implantação em 3 parcelas: a 1ª na '
+            'assinatura, a 2ª na entrega e a 3ª 30 dias após a entrega\n'
+            '- Mensalidade a partir do mês seguinte à entrega, com vencimento '
+            'todo dia [X]\n'
             '- Período mínimo de 12 meses a partir da entrega\n'
             '- Reajuste anual pelo IPCA\n'
             '- O cliente recebe o direito de uso do sistema; o código-fonte '

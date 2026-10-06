@@ -255,6 +255,8 @@ class FolhaProposta extends StatelessWidget {
                   ],
                   if (depois.isNotEmpty) const SizedBox(height: 20),
                   for (final texto in depois) _TextoFolha(texto),
+                  if (controller.incluirAceite)
+                    _AceiteFolha(controller: controller),
                   const SizedBox(height: 20),
                   FilledButton(
                     onPressed:
@@ -318,6 +320,40 @@ class _TextoFolha extends StatelessWidget {
                     )
                   : Text(linha, style: const TextStyle(color: Cores.tinta)),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Resumo do aceite que o PDF desenha com linhas de assinatura.
+class _AceiteFolha extends StatelessWidget {
+  const _AceiteFolha({required this.controller});
+
+  final PropostaController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cliente = controller.nomeCliente ?? 'Cliente';
+    final empresa = controller.nomeEmpresa ?? 'Prestador';
+    return Padding(
+      key: const Key('aceite_folha'),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Aceite',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text('Esta proposta é válida até ${controller.validaAte}.'),
+          const Text('De acordo,'),
+          const SizedBox(height: 10),
+          Text(
+            'Assinaturas: $cliente e $empresa',
+            style: const TextStyle(color: Cores.suave, fontSize: 13),
+          ),
         ],
       ),
     );

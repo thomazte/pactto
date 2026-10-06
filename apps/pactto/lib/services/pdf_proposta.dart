@@ -199,6 +199,7 @@ Future<pw.Document> montarPdfProposta(PropostaPdf proposta) async {
         ],
         if (proposta.textosDepois.isNotEmpty) pw.SizedBox(height: 18),
         for (final texto in proposta.textosDepois) ..._texto(texto),
+        if (proposta.aceite) _aceite(proposta),
       ],
     ),
   );
@@ -283,6 +284,79 @@ pw.Widget _linha(LinhaPdf linha) {
       ],
     ),
   );
+}
+
+/// Validade, "De acordo" e as duas assinaturas, num bloco só para não
+/// separar as linhas entre páginas.
+pw.Widget _aceite(PropostaPdf proposta) {
+  const estilo = pw.TextStyle(fontSize: 11, color: PdfColors.grey800);
+  pw.Widget assinatura(String papel, String nome, String? documento) {
+    return pw.Expanded(
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Container(height: 0.6, color: PdfColors.grey600),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            nome,
+            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.Text(rotuloDocumento(documento), style: estilo),
+          pw.Text(
+            papel,
+            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  return pw.Padding(
+    padding: const pw.EdgeInsets.only(top: 6),
+    child: pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          'Aceite',
+          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 6),
+        pw.Text(
+          'Esta proposta é válida até ${proposta.validaAte}.',
+          style: estilo,
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text('De acordo,', style: estilo),
+        pw.SizedBox(height: 44),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            assinatura(
+              'Cliente',
+              proposta.clienteNome ?? 'Cliente',
+              proposta.clienteDocumento,
+            ),
+            pw.SizedBox(width: 28),
+            assinatura(
+              'Prestador',
+              proposta.empresaNome ?? 'Prestador',
+              proposta.empresaDocumento,
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 22),
+        pw.Text('Data: ____/____/________', style: estilo),
+      ],
+    ),
+  );
+}
+
+/// "CPF: …" ou "CNPJ: …" pelo número de dígitos; sem documento, um espaço
+/// para preencher à mão.
+String rotuloDocumento(String? documento) {
+  if (documento == null) return 'CPF/CNPJ: ____________________';
+  final digitos = documento.replaceAll(RegExp(r'\D'), '');
+  return '${digitos.length == 11 ? 'CPF' : 'CNPJ'}: $documento';
 }
 
 /// Verdadeira quando o PDF consegue desenhar a imagem.

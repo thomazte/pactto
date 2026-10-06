@@ -46,6 +46,7 @@ class ModeloProposta {
     required this.id,
     required this.nome,
     this.textos = const [],
+    this.aceite = false,
   });
 
   factory ModeloProposta.deJson(Map<String, dynamic> json) {
@@ -56,6 +57,7 @@ class ModeloProposta {
         for (final texto in json['textos'] as List? ?? const [])
           TextoProposta.deJson(Map<String, dynamic>.from(texto as Map)),
       ],
+      aceite: json['aceite'] == true,
     );
   }
 
@@ -63,9 +65,13 @@ class ModeloProposta {
   final String nome;
   final List<TextoProposta> textos;
 
+  /// Fecha a proposta com validade, "De acordo" e linhas de assinatura.
+  final bool aceite;
+
   Map<String, dynamic> paraJson() => {
     'id': id,
     'nome': nome,
     'textos': [for (final texto in textos) texto.paraJson()],
+    'aceite': aceite,
   };
 }

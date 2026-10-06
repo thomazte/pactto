@@ -107,6 +107,18 @@ class EntradaProposta extends StatelessWidget {
           ),
           onChanged: (_) => controller.notificar(),
         ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('cliente_documento'),
+          controller: controller.clienteDocumento,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'CPF ou CNPJ (opcional)',
+            hintText: '00.000.000/0000-00',
+            errorText: controller.erroDocumentoCliente,
+          ),
+          onChanged: (_) => controller.notificar(),
+        ),
         const SizedBox(height: 22),
         const _Secao('Itens'),
         TextField(
@@ -463,6 +475,33 @@ class _Modelo extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _EscreverComIa(controller: controller),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Incluir aceite com assinaturas',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      'Validade, "De acordo" e linhas de assinatura no fim do PDF.',
+                      style: TextStyle(color: Cores.suave, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                key: const Key('incluir_aceite'),
+                value: controller.incluirAceite,
+                onChanged: controller.alternarAceite,
+              ),
+            ],
+          ),
+        ),
         for (var i = 0; i < textos.length; i++)
           _CampoTexto(controller: controller, indice: i),
         Wrap(
