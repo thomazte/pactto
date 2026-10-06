@@ -1,6 +1,7 @@
 import 'package:dominio/dominio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../controllers/proposta_controller.dart';
 import '../../core/formatters/formato_telefone.dart';
@@ -460,6 +461,8 @@ class _Modelo extends StatelessWidget {
           'O que você editar aqui só muda o modelo se salvar.',
           style: TextStyle(color: Cores.suave, fontSize: 13, height: 1.4),
         ),
+        const SizedBox(height: 12),
+        _EscreverComIa(controller: controller),
         for (var i = 0; i < textos.length; i++)
           _CampoTexto(controller: controller, indice: i),
         Wrap(
@@ -484,6 +487,104 @@ class _Modelo extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// A IA fica fora do app: o pedido vai para a área de transferência, o
+/// prestador cola no Claude e traz a resposta de volta.
+class _EscreverComIa extends StatelessWidget {
+  const _EscreverComIa({required this.controller});
+
+  final PropostaController controller;
+
+  Future<void> _copiar(BuildContext context) async {
+    final mensageiro = ScaffoldMessenger.of(context);
+    final pedido = controller.pedidoIa();
+    if (pedido == null) {
+      mensageiro.showSnackBar(
+        const SnackBar(
+          content: Text('Escreva primeiro o que o cliente precisa.'),
+        ),
+      );
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: pedido));
+    mensageiro.showSnackBar(
+      const SnackBar(
+        content: Text('Pedido copiado. Cole no Claude e copie a resposta.'),
+      ),
+    );
+  }
+
+  Future<void> _colar(BuildContext context) async {
+    final mensageiro = ScaffoldMessenger.of(context);
+    String? mensagem;
+    try {
+      final dados = await Clipboard.getData(Clipboard.kTextPlain);
+      final texto = dados?.text?.trim() ?? '';
+      mensagem = texto.isEmpty
+          ? 'Copie a resposta da IA antes de colar.'
+          : controller.aplicarRespostaIa(texto) ?? 'Textos atualizados.';
+    } catch (_) {
+      mensagem = 'Não foi possível ler a área de transferência.';
+    }
+    mensageiro.showSnackBar(SnackBar(content: Text(mensagem)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+      decoration: BoxDecoration(
+        color: Cores.azulSuave.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Escrever com IA',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Escreva em tópicos o que o cliente precisa. Copie o pedido, cole '
+            'no Claude (claude.ai), copie a resposta e toque em "Colar resposta".',
+            style: TextStyle(color: Cores.suave, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: const Key('topicos_ia'),
+            controller: controller.topicosIa,
+            minLines: 2,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'O que o cliente precisa',
+              hintText: 'Sistema de OS, controle de garantia, PDF da OS',
+            ),
+          ),
+          Wrap(
+            spacing: 4,
+            children: [
+              TextButton.icon(
+                key: const Key('copiar_pedido_ia'),
+                onPressed: () => _copiar(context),
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copiar pedido para IA'),
+              ),
+              TextButton.icon(
+                key: const Key('colar_resposta_ia'),
+                onPressed: () => _colar(context),
+                icon: const Icon(Icons.content_paste, size: 18),
+                label: const Text('Colar resposta'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

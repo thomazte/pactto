@@ -13,6 +13,7 @@ import '../models/resumo_orcamento.dart';
 import '../services/empresa_local.dart';
 import '../services/modelos_local.dart';
 import '../services/numeracao_local.dart';
+import '../services/pedido_ia.dart';
 import '../services/pdf_proposta.dart';
 
 enum ResultadoPdf { ignorado, gerado, baixado, cancelado, falha }
@@ -99,6 +100,9 @@ class PropostaController extends ChangeNotifier {
   final valor = TextEditingController();
   final desconto = TextEditingController();
   final visita = TextEditingController();
+
+  /// O que o cliente precisa, em tópicos soltos, para o pedido à IA.
+  final topicosIa = TextEditingController();
   final linhas = <LinhaDigitada>[];
 
   final List<ModeloProposta> modelos;
@@ -330,6 +334,48 @@ class PropostaController extends ChangeNotifier {
     _atualizar();
   }
 
+  /// Pedido para colar numa IA, com os textos antes dos itens. Null quando
+  /// ainda não há tópicos.
+  String? pedidoIa() {
+    final topicos = topicosIa.text.trim();
+    if (topicos.isEmpty) return null;
+    return montarPedidoIa(
+      topicos: topicos,
+      cliente: nomeCliente,
+      textos: [
+        for (final texto in textos)
+          if (texto.posicao == PosicaoTexto.antes && !texto.valor.vazio)
+            texto.valor,
+      ],
+    );
+  }
+
+  /// Põe cada texto da resposta no texto de mesmo título, ou cria um novo
+  /// antes dos itens. Devolve o motivo da recusa, ou null.
+  String? aplicarRespostaIa(String resposta) {
+    final lidos = lerRespostaIa(resposta);
+    if (lidos.isEmpty) {
+      return 'Não encontrei os textos na resposta. Copie a resposta inteira '
+          'da IA.';
+    }
+    for (final lido in lidos) {
+      final existente = textos.where(
+        (texto) =>
+            texto.titulo.text.trim().toLowerCase() == lido.titulo.toLowerCase(),
+      );
+      if (existente.isNotEmpty) {
+        existente.first.corpo.text = lido.corpo;
+        continue;
+      }
+      final depois = textos.indexWhere(
+        (texto) => texto.posicao == PosicaoTexto.depois,
+      );
+      textos.insert(depois < 0 ? textos.length : depois, TextoEditavel(lido));
+    }
+    _atualizar();
+    return null;
+  }
+
   Future<ResultadoPdf> gerarPdf() async {
     final totais = resumo.totais;
     if (totais == null || linhas.isEmpty || gerandoPdf) {
@@ -399,6 +445,7 @@ class PropostaController extends ChangeNotifier {
     valor.clear();
     desconto.clear();
     visita.clear();
+    topicosIa.clear();
     linhas.clear();
     erroItem = null;
     modalidade = ModalidadeItem.hora;
@@ -468,6 +515,7 @@ class PropostaController extends ChangeNotifier {
     valor.dispose();
     desconto.dispose();
     visita.dispose();
+    topicosIa.dispose();
     for (final texto in textos) {
       texto.dispose();
     }
