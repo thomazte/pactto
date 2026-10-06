@@ -25,6 +25,8 @@ A interface segue MVC.
 
 O ponto de entrada é `apps/pactto/lib/main.dart`. Um `flutter run` na raiz do repositório não encontra esse arquivo.
 
+O ícone do app é o mesmo símbolo da capa do portfólio: folha com itens, assinatura e selo de R$, em branco sobre o gradiente azul da marca. No Android há o ícone legado em `mipmap-*/ic_launcher.png` e o adaptativo (`mipmap-anydpi-v26/ic_launcher.xml`), com fundo, frente e versão monocromática para ícones temáticos; na web, `favicon.png` e `web/icons/`. Todos saem de `apps/pactto/scripts/gerar_icones.py` (Python com Pillow e a fonte Ubuntu), rodado dentro de `apps/pactto`.
+
 ## 2. Uso da tela
 
 Ao abrir, o aplicativo carrega nome, telefone, e-mail, Pix, logo e o número da próxima proposta gravados no aparelho. O prestador informa o cliente, acrescenta itens e acompanha a folha ao lado, ou abaixo, em telas com menos de 900 px de largura.
