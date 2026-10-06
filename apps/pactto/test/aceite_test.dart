@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pactto/app.dart';
 import 'package:pactto/controllers/proposta_controller.dart';
 import 'package:pactto/core/constants/modelos_padrao.dart';
+import 'package:pactto/core/formatters/formato_documento.dart';
 import 'package:pactto/models/modelo_proposta.dart';
 import 'package:pactto/models/proposta_pdf.dart';
 import 'package:pactto/services/pdf_proposta.dart';
@@ -77,6 +78,39 @@ void main() {
     expect(controller.documentoEmpresa, isNull);
     controller.empresaPix.text = '69.408.874/0001-89';
     expect(controller.documentoEmpresa, '69.408.874/0001-89');
+  });
+
+  test('a máscara vira CPF até 11 dígitos e CNPJ a partir de 12', () {
+    expect(formatarDocumento(''), '');
+    expect(formatarDocumento('529'), '529');
+    expect(formatarDocumento('5299'), '529.9');
+    expect(formatarDocumento('52998224725'), '529.982.247-25');
+    expect(formatarDocumento('474070130001'), '47.407.013/0001');
+    expect(formatarDocumento('47407013000143'), '47.407.013/0001-43');
+    expect(formatarDocumento('47.407.013/0001-4399'), '47.407.013/0001-43');
+  });
+
+  testWidgets('o CPF ou CNPJ do cliente ganha a máscara ao digitar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 3600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const PrestadorApp());
+
+    final campo = find.byKey(const Key('cliente_documento'));
+    String? texto() => tester.widget<TextField>(campo).controller?.text;
+
+    await tester.enterText(campo, '52998224725');
+    await tester.pump();
+    expect(texto(), '529.982.247-25');
+    expect(find.text('CPF ou CNPJ inválido.'), findsNothing);
+
+    await tester.enterText(campo, '47407013000143');
+    await tester.pump();
+    expect(texto(), '47.407.013/0001-43');
+    expect(find.text('CPF ou CNPJ inválido.'), findsNothing);
   });
 
   test('o rótulo do documento segue o número de dígitos', () {

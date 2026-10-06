@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../controllers/proposta_controller.dart';
+import '../../core/formatters/formato_documento.dart';
 import '../../core/formatters/formato_telefone.dart';
 import '../../core/theme/tema.dart';
 import '../../core/widgets/marca_pix.dart';
@@ -112,6 +113,7 @@ class EntradaProposta extends StatelessWidget {
           key: const Key('cliente_documento'),
           controller: controller.clienteDocumento,
           keyboardType: TextInputType.number,
+          inputFormatters: const [FormatoDocumento()],
           decoration: InputDecoration(
             labelText: 'CPF ou CNPJ (opcional)',
             hintText: '00.000.000/0000-00',

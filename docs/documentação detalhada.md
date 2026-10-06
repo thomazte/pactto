@@ -51,7 +51,7 @@ O aparelho sem modelos gravados oferece "Sistema sob medida", definido em `apps/
 
 O botão "Gerar PDF" só fica ativo com ao menos um item e com o total calculado. Depois que o PDF é impresso, compartilhado ou baixado, cliente (com o CPF ou CNPJ), itens, desconto e visita são apagados, e os textos voltam aos do modelo escolhido. Se o prestador fechar a impressão ou o compartilhamento sem concluir, a proposta continua preenchida. Os dados da empresa permanecem.
 
-Telefone e WhatsApp aceitam a máscara brasileira: celular `(62) 98483-5669` e fixo `(62) 3483-5669`. Um prefixo `55` com 12 ou 13 dígitos é removido antes da máscara.
+Telefone e WhatsApp aceitam a máscara brasileira: celular `(62) 98483-5669` e fixo `(62) 3483-5669`. Um prefixo `55` com 12 ou 13 dígitos é removido antes da máscara. O CPF ou CNPJ do cliente também ganha máscara ao digitar: até 11 dígitos sai como CPF, `529.982.247-25`, e de 12 a 14 como CNPJ, `47.407.013/0001-43`. Dígitos além do 14º são descartados.
 
 ## 3. Cálculo usado pela tela
 
