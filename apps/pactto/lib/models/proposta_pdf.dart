@@ -12,6 +12,15 @@ class LinhaPdf {
   final String total;
 }
 
+/// Bloco de texto da proposta. No corpo, linha que começa com "- " vira
+/// tópico.
+class TextoPdf {
+  const TextoPdf({required this.titulo, required this.corpo});
+
+  final String titulo;
+  final String corpo;
+}
+
 class PropostaPdf {
   const PropostaPdf({
     required this.numero,
@@ -28,6 +37,8 @@ class PropostaPdf {
     this.clienteNome,
     this.clienteContato,
     this.logo,
+    this.textosAntes = const [],
+    this.textosDepois = const [],
   });
 
   final int numero;
@@ -49,6 +60,10 @@ class PropostaPdf {
   final String? clienteNome;
   final String? clienteContato;
   final Uint8List? logo;
+
+  /// Textos do modelo, antes e depois da lista de itens.
+  final List<TextoPdf> textosAntes;
+  final List<TextoPdf> textosDepois;
 
   /// "0012" para a proposta 12.
   String get numeroFormatado => numero.toString().padLeft(4, '0');

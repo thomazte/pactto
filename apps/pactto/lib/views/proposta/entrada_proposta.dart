@@ -7,6 +7,7 @@ import '../../core/formatters/formato_telefone.dart';
 import '../../core/theme/tema.dart';
 import '../../core/widgets/marca_pix.dart';
 import '../../models/atalho_item.dart';
+import '../../models/modelo_proposta.dart';
 
 class EntradaProposta extends StatelessWidget {
   const EntradaProposta({super.key, required this.controller});
@@ -80,6 +81,9 @@ class EntradaProposta extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _Logo(controller: controller),
+        const SizedBox(height: 22),
+        const _Secao('Modelo e textos'),
+        _Modelo(controller: controller),
         const SizedBox(height: 22),
         const _Secao('Cliente'),
         TextField(
@@ -349,6 +353,218 @@ class _Logo extends StatelessWidget {
             child: const Text('Usar o padrão'),
           ),
       ],
+    );
+  }
+}
+
+class _Modelo extends StatelessWidget {
+  const _Modelo({required this.controller});
+
+  final PropostaController controller;
+
+  Future<void> _salvar(BuildContext context) async {
+    final nome = TextEditingController(
+      text: controller.modeloAtual?.nome ?? '',
+    );
+    final escolhido = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Salvar como modelo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              key: const Key('nome_modelo'),
+              controller: nome,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Nome do modelo'),
+              onSubmitted: (texto) => Navigator.pop(context, texto),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Um nome que já existe substitui aquele modelo.',
+              style: TextStyle(color: Cores.suave, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            key: const Key('confirmar_modelo'),
+            onPressed: () => Navigator.pop(context, nome.text),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+    nome.dispose();
+    if (escolhido == null || !context.mounted) return;
+    final erro = controller.salvarComoModelo(escolhido);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(erro ?? 'Modelo salvo.')));
+  }
+
+  Future<void> _excluir(BuildContext context, ModeloProposta modelo) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Excluir "${modelo.nome}"?'),
+        content: const Text('Os textos desta proposta continuam como estão.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmou == true) controller.excluirModelo(modelo.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final atual = controller.modeloAtual;
+    final textos = controller.textos;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // A chave muda com a escolha, para o campo refletir o modelo salvo
+        // ou excluído fora dele.
+        KeyedSubtree(
+          key: ValueKey('${atual?.id}/${controller.modelos.length}'),
+          child: DropdownButtonFormField<String?>(
+            key: const Key('modelo'),
+            initialValue: atual?.id,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Modelo'),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Sem modelo')),
+              for (final modelo in controller.modelos)
+                DropdownMenuItem(value: modelo.id, child: Text(modelo.nome)),
+            ],
+            onChanged: controller.escolherModelo,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Escolher um modelo troca os textos desta proposta. '
+          'O que você editar aqui só muda o modelo se salvar.',
+          style: TextStyle(color: Cores.suave, fontSize: 13, height: 1.4),
+        ),
+        for (var i = 0; i < textos.length; i++)
+          _CampoTexto(controller: controller, indice: i),
+        Wrap(
+          spacing: 4,
+          children: [
+            TextButton.icon(
+              key: const Key('adicionar_texto'),
+              onPressed: controller.adicionarTexto,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar texto'),
+            ),
+            TextButton(
+              key: const Key('salvar_modelo'),
+              onPressed: () => _salvar(context),
+              child: const Text('Salvar como modelo'),
+            ),
+            if (atual != null)
+              TextButton(
+                onPressed: () => _excluir(context, atual),
+                child: const Text('Excluir modelo'),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CampoTexto extends StatelessWidget {
+  const _CampoTexto({required this.controller, required this.indice});
+
+  final PropostaController controller;
+  final int indice;
+
+  @override
+  Widget build(BuildContext context) {
+    final texto = controller.textos[indice];
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 4, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Cores.linha),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: Key('texto_titulo_$indice'),
+                  controller: texto.titulo,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Título',
+                    hintText: 'Escopo',
+                  ),
+                  onChanged: (_) => controller.notificar(),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Remover texto',
+                onPressed: () => controller.removerTexto(indice),
+                icon: const Icon(Icons.close, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextField(
+              key: Key('texto_corpo_$indice'),
+              controller: texto.corpo,
+              minLines: 3,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Texto',
+                hintText: 'Comece a linha com "- " para virar tópico.',
+              ),
+              onChanged: (_) => controller.notificar(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            children: [
+              for (final posicao in PosicaoTexto.values)
+                ChoiceChip(
+                  label: Text(posicao.rotulo),
+                  selected: texto.posicao == posicao,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (selecionada) {
+                    if (selecionada) {
+                      controller.definirPosicao(indice, posicao);
+                    }
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

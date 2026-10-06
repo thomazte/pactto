@@ -2,6 +2,7 @@ import 'package:dominio/dominio.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/proposta_controller.dart';
+import '../../models/modelo_proposta.dart';
 import '../../core/theme/tema.dart';
 import '../../core/widgets/marca_pix.dart';
 
@@ -34,6 +35,12 @@ class FolhaProposta extends StatelessWidget {
     final clienteNome = controller.nomeCliente;
     final clienteContato = controller.contatoCliente;
     final logo = controller.logo;
+    List<TextoProposta> textos(PosicaoTexto posicao) => [
+      for (final texto in controller.textos)
+        if (texto.posicao == posicao && !texto.valor.vazio) texto.valor,
+    ];
+    final antes = textos(PosicaoTexto.antes);
+    final depois = textos(PosicaoTexto.depois);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Cores.papel,
@@ -173,6 +180,18 @@ class FolhaProposta extends StatelessWidget {
                     style: const TextStyle(color: Cores.suave, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
+                  for (final texto in antes) _TextoFolha(texto),
+                  if (antes.isNotEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        'Investimento',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   if (linhas.isEmpty)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 20),
@@ -234,6 +253,8 @@ class FolhaProposta extends StatelessWidget {
                         ),
                     ],
                   ],
+                  if (depois.isNotEmpty) const SizedBox(height: 20),
+                  for (final texto in depois) _TextoFolha(texto),
                   const SizedBox(height: 20),
                   FilledButton(
                     onPressed:
@@ -251,6 +272,53 @@ class FolhaProposta extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Mesmo texto que o PDF desenha: linha com "- " vira tópico.
+class _TextoFolha extends StatelessWidget {
+  const _TextoFolha(this.texto);
+
+  final TextoProposta texto;
+
+  @override
+  Widget build(BuildContext context) {
+    final linhas = texto.corpo
+        .split('\n')
+        .map((linha) => linha.trim())
+        .where((linha) => linha.isNotEmpty);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (texto.titulo.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                texto.titulo,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          for (final linha in linhas)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: linha.startsWith('- ')
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 14, child: Text('•')),
+                        Expanded(child: Text(linha.substring(2).trim())),
+                      ],
+                    )
+                  : Text(linha, style: const TextStyle(color: Cores.tinta)),
+            ),
+        ],
       ),
     );
   }

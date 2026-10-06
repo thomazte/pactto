@@ -33,6 +33,8 @@ Future<pw.Document> montarPdfProposta(PropostaPdf proposta) async {
       for (final linha in proposta.linhas) linha.nome,
       ...proposta.mensalidades,
       proposta.total,
+      for (final texto in [...proposta.textosAntes, ...proposta.textosDepois])
+        texto.titulo,
     ].join(' '),
   );
   doc.addPage(
@@ -154,6 +156,14 @@ Future<pw.Document> montarPdfProposta(PropostaPdf proposta) async {
           style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
         ),
         pw.SizedBox(height: 18),
+        for (final texto in proposta.textosAntes) ..._texto(texto),
+        if (proposta.textosAntes.isNotEmpty) ...[
+          pw.Text(
+            'Investimento',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 10),
+        ],
         for (final linha in proposta.linhas) _linha(linha),
         if (proposta.desconto != null) _par('Desconto', proposta.desconto!),
         if (proposta.visita != null) _par('Visita', proposta.visita!),
@@ -187,10 +197,46 @@ Future<pw.Document> montarPdfProposta(PropostaPdf proposta) async {
               ),
             ),
         ],
+        if (proposta.textosDepois.isNotEmpty) pw.SizedBox(height: 18),
+        for (final texto in proposta.textosDepois) ..._texto(texto),
       ],
     ),
   );
   return doc;
+}
+
+/// Uma linha por widget, para o texto longo poder passar de página.
+List<pw.Widget> _texto(TextoPdf texto) {
+  const estilo = pw.TextStyle(fontSize: 11, color: PdfColors.grey800);
+  final linhas = texto.corpo
+      .split('\n')
+      .map((linha) => linha.trim())
+      .where((linha) => linha.isNotEmpty);
+  return [
+    if (texto.titulo.isNotEmpty) ...[
+      pw.Text(
+        texto.titulo,
+        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+      ),
+      pw.SizedBox(height: 6),
+    ],
+    for (final linha in linhas)
+      pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 4),
+        child: linha.startsWith('- ')
+            ? pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.SizedBox(width: 14, child: pw.Text('•', style: estilo)),
+                  pw.Expanded(
+                    child: pw.Text(linha.substring(2).trim(), style: estilo),
+                  ),
+                ],
+              )
+            : pw.Text(linha, style: estilo),
+      ),
+    pw.SizedBox(height: 14),
+  ];
 }
 
 /// Cada linha é um bloco só, para a quebra de página não separar o texto

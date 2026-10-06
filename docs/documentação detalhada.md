@@ -41,7 +41,11 @@ Cada item tem descrição, quantidade e valor. A quantidade vazia vale 1. Sem va
 
 Descrição vazia aparece como "Serviço" ou "Licença", conforme o tipo. Desconto e visita ficam ocultos até o prestador abrir "Desconto ou visita". O desconto é percentual ou fixo em reais. A visita é uma taxa somada depois do desconto.
 
-O botão "Gerar PDF" só fica ativo com ao menos um item e com o total calculado. Depois que o PDF é impresso, compartilhado ou baixado, cliente, itens, desconto e visita são apagados. Se o prestador fechar a impressão ou o compartilhamento sem concluir, a proposta continua preenchida. Os dados da empresa permanecem.
+Em "Modelo e textos", o prestador escolhe um modelo, e os textos dele preenchem a proposta: apresentação, escopo, condições ou o que o modelo tiver. Cada texto tem título, corpo e posição, antes ou depois dos itens. No corpo, a linha que começa com `- ` vira tópico. Editar um texto muda só esta proposta. "Salvar como modelo" grava os textos atuais com um nome; um nome já usado, sem diferença de maiúsculas, substitui aquele modelo. Textos em branco não entram no modelo. "Excluir modelo" apaga o modelo e mantém os textos já na proposta. "Sem modelo" deixa a proposta só com os itens.
+
+O aparelho sem modelos gravados oferece "Sistema sob medida", definido em `apps/pactto/lib/core/constants/modelos_padrao.dart`, já escolhido na primeira abertura.
+
+O botão "Gerar PDF" só fica ativo com ao menos um item e com o total calculado. Depois que o PDF é impresso, compartilhado ou baixado, cliente, itens, desconto e visita são apagados, e os textos voltam aos do modelo escolhido. Se o prestador fechar a impressão ou o compartilhamento sem concluir, a proposta continua preenchida. Os dados da empresa permanecem.
 
 Telefone e WhatsApp aceitam a máscara brasileira: celular `(62) 98483-5669` e fixo `(62) 3483-5669`. Um prefixo `55` com 12 ou 13 dígitos é removido antes da máscara.
 
@@ -72,7 +76,7 @@ Falha ao gerar ou entregar o PDF mostra "Não foi possível gerar o PDF." No nav
 
 ## 4. Persistência e PDF
 
-A empresa é gravada em `SharedPreferences` a cada alteração, nas chaves `empresa_nome`, `empresa_telefone`, `empresa_email` e `empresa_pix`. O logo fica em `empresa_logo`, em Base64. Não há conta nem servidor.
+A empresa é gravada em `SharedPreferences` a cada alteração, nas chaves `empresa_nome`, `empresa_telefone`, `empresa_email` e `empresa_pix`. O logo fica em `empresa_logo`, em Base64. Os modelos ficam em `modelos_proposta`, em JSON, e o último escolhido em `modelo_escolhido` (texto vazio é "sem modelo"). Sem `modelos_proposta` gravado valem os modelos padrão; uma lista gravada vazia continua vazia. Não há conta nem servidor.
 
 Os dados padrão da empresa ficam em `apps/pactto/lib/core/constants/empresa_padrao.dart`: nome, telefone, e-mail e Pix (o CNPJ). Eles preenchem "Sua empresa" quando o aparelho não tem outro valor gravado. O prestador pode editar cada campo, e um campo deixado vazio volta ao padrão na próxima abertura.
 
@@ -80,7 +84,7 @@ O logo padrão, `assets/logo_padrao.jpg`, vem com o aplicativo e aparece enquant
 
 Cada proposta tem um número, exibido com quatro dígitos: `0012`. O próximo número fica em `proposta_proximo_numero` e começa em 1. Ele só avança depois que o PDF é impresso, compartilhado ou baixado. Um cancelamento mantém o mesmo número.
 
-O PDF é A4, com as fontes DejaVu embutidas, para o texto em português sair corretamente. Itens que não cabem numa página continuam na seguinte, e a partir de duas páginas o rodapé traz o número da proposta e a página. O logo ocupa um quadrado de cantos arredondados à direita do cabeçalho azul. Imagem que não for quadrada é recortada ao centro. O arquivo se chama `proposta-<número>-<cliente>.pdf`, com o nome do cliente sem acento, em minúsculas e com hífens, ou `proposta-<número>.pdf` sem cliente. No celular, o aplicativo abre a impressão do sistema e, se ela falhar, oferece compartilhamento. No navegador, o arquivo é compartilhado para download.
+O PDF é A4, com as fontes DejaVu embutidas, para o texto em português sair corretamente. A folha e o PDF seguem a mesma ordem: cliente, textos antes dos itens, o título "Investimento" (só quando há texto antes), itens, total, mensalidades e textos depois dos itens. Itens e linhas de texto que não cabem numa página continuam na seguinte, e a partir de duas páginas o rodapé traz o número da proposta e a página. O logo ocupa um quadrado de cantos arredondados à direita do cabeçalho azul. Imagem que não for quadrada é recortada ao centro. O arquivo se chama `proposta-<número>-<cliente>.pdf`, com o nome do cliente sem acento, em minúsculas e com hífens, ou `proposta-<número>.pdf` sem cliente. No celular, o aplicativo abre a impressão do sistema e, se ela falhar, oferece compartilhamento. No navegador, o arquivo é compartilhado para download.
 
 A folha e o PDF informam a data de emissão e a data de validade, 7 dias depois. As duas seguem o dia civil de São Paulo, pela regra da seção 5.3.
 

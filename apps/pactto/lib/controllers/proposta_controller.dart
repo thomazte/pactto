@@ -7,25 +7,55 @@ import '../core/formatters/formato_telefone.dart';
 import '../models/atalho_item.dart';
 import '../models/empresa.dart';
 import '../models/linha_digitada.dart';
+import '../models/modelo_proposta.dart';
 import '../models/proposta_pdf.dart';
 import '../models/resumo_orcamento.dart';
 import '../services/empresa_local.dart';
+import '../services/modelos_local.dart';
 import '../services/numeracao_local.dart';
 import '../services/pdf_proposta.dart';
 
 enum ResultadoPdf { ignorado, gerado, baixado, cancelado, falha }
+
+/// Texto da proposta em edição. Mudar aqui não altera o modelo.
+class TextoEditavel {
+  TextoEditavel(TextoProposta texto)
+    : titulo = TextEditingController(text: texto.titulo),
+      corpo = TextEditingController(text: texto.corpo),
+      posicao = texto.posicao;
+
+  final TextEditingController titulo;
+  final TextEditingController corpo;
+  PosicaoTexto posicao;
+
+  TextoProposta get valor => TextoProposta(
+    titulo: titulo.text.trim(),
+    corpo: corpo.text.trim(),
+    posicao: posicao,
+  );
+
+  void dispose() {
+    titulo.dispose();
+    corpo.dispose();
+  }
+}
 
 class PropostaController extends ChangeNotifier {
   PropostaController({
     Empresa empresa = const Empresa(),
     this.numero = 1,
     this.logoPadrao,
+    List<ModeloProposta> modelos = const [],
+    String? modeloId,
     EmpresaLocal? armazenamento,
     NumeracaoLocal? numeracao,
+    ModelosLocal? armazenamentoModelos,
     PdfPropostaService? pdf,
     DateTime Function()? agora,
   }) : _armazenamento = armazenamento ?? const EmpresaLocal(),
        _numeracao = numeracao ?? const NumeracaoLocal(),
+       _modelosLocal = armazenamentoModelos ?? const ModelosLocal(),
+       modelos = List.of(modelos),
        _pdf = pdf ?? const PdfPropostaService(),
        _agora = agora ?? DateTime.now,
        _logoProprio = empresa.logo {
@@ -35,12 +65,15 @@ class PropostaController extends ChangeNotifier {
     );
     empresaEmail = TextEditingController(text: empresa.email);
     empresaPix = TextEditingController(text: empresa.pix);
+    this.modeloId = _modelo(modeloId)?.id;
+    _carregarTextos();
   }
 
   static const validadeDias = 7;
 
   final EmpresaLocal _armazenamento;
   final NumeracaoLocal _numeracao;
+  final ModelosLocal _modelosLocal;
   final PdfPropostaService _pdf;
   final DateTime Function() _agora;
 
@@ -67,6 +100,12 @@ class PropostaController extends ChangeNotifier {
   final desconto = TextEditingController();
   final visita = TextEditingController();
   final linhas = <LinhaDigitada>[];
+
+  final List<ModeloProposta> modelos;
+
+  /// Modelo que preencheu os textos. Null é "sem modelo".
+  String? modeloId;
+  final textos = <TextoEditavel>[];
 
   ModalidadeItem modalidade = ModalidadeItem.hora;
   TipoDesconto descontoTipo = TipoDesconto.percentual;
@@ -223,6 +262,74 @@ class PropostaController extends ChangeNotifier {
     _atualizar();
   }
 
+  ModeloProposta? get modeloAtual => _modelo(modeloId);
+
+  /// Troca os textos da proposta pelos do modelo.
+  void escolherModelo(String? id) {
+    modeloId = _modelo(id)?.id;
+    _carregarTextos();
+    _modelosLocal.salvarEscolhido(modeloId);
+    _atualizar();
+  }
+
+  void adicionarTexto() {
+    textos.add(TextoEditavel(const TextoProposta(titulo: '', corpo: '')));
+    _atualizar();
+  }
+
+  void removerTexto(int indice) {
+    textos.removeAt(indice).dispose();
+    _atualizar();
+  }
+
+  void definirPosicao(int indice, PosicaoTexto posicao) {
+    textos[indice].posicao = posicao;
+    _atualizar();
+  }
+
+  /// Grava os textos atuais como modelo. Um nome já usado substitui o
+  /// modelo daquele nome. Devolve o motivo da recusa, ou null.
+  String? salvarComoModelo(String nome) {
+    final limpo = nome.trim();
+    if (limpo.isEmpty) return 'Dê um nome ao modelo.';
+    final valores = [
+      for (final texto in textos)
+        if (!texto.valor.vazio) texto.valor,
+    ];
+    if (valores.isEmpty) return 'Escreva ao menos um texto.';
+    final indice = modelos.indexWhere(
+      (modelo) => modelo.nome.toLowerCase() == limpo.toLowerCase(),
+    );
+    final modelo = ModeloProposta(
+      id: indice < 0
+          ? _agora().microsecondsSinceEpoch.toString()
+          : modelos[indice].id,
+      nome: limpo,
+      textos: valores,
+    );
+    if (indice < 0) {
+      modelos.add(modelo);
+    } else {
+      modelos[indice] = modelo;
+    }
+    modeloId = modelo.id;
+    _modelosLocal.salvar(modelos);
+    _modelosLocal.salvarEscolhido(modeloId);
+    _atualizar();
+    return null;
+  }
+
+  /// Apaga o modelo. Os textos já na proposta continuam.
+  void excluirModelo(String id) {
+    modelos.removeWhere((modelo) => modelo.id == id);
+    if (modeloId == id) {
+      modeloId = null;
+      _modelosLocal.salvarEscolhido(null);
+    }
+    _modelosLocal.salvar(modelos);
+    _atualizar();
+  }
+
   Future<ResultadoPdf> gerarPdf() async {
     final totais = resumo.totais;
     if (totais == null || linhas.isEmpty || gerandoPdf) {
@@ -259,6 +366,8 @@ class PropostaController extends ChangeNotifier {
         empresaPix: pixEmpresa,
         clienteNome: nomeCliente,
         clienteContato: contatoCliente,
+        textosAntes: _textosPdf(PosicaoTexto.antes),
+        textosDepois: _textosPdf(PosicaoTexto.depois),
       );
       final bytes = Uint8List.fromList(await gerarPdfProposta(proposta));
       final entrega = await _pdf.entregar(bytes, nome: proposta.nomeArquivo);
@@ -295,7 +404,33 @@ class PropostaController extends ChangeNotifier {
     modalidade = ModalidadeItem.hora;
     descontoTipo = TipoDesconto.percentual;
     mostrarAjustes = false;
+    _carregarTextos();
   }
+
+  ModeloProposta? _modelo(String? id) {
+    for (final modelo in modelos) {
+      if (modelo.id == id) return modelo;
+    }
+    return null;
+  }
+
+  void _carregarTextos() {
+    for (final texto in textos) {
+      texto.dispose();
+    }
+    textos
+      ..clear()
+      ..addAll([
+        for (final texto in modeloAtual?.textos ?? const <TextoProposta>[])
+          TextoEditavel(texto),
+      ]);
+  }
+
+  List<TextoPdf> _textosPdf(PosicaoTexto posicao) => [
+    for (final texto in textos)
+      if (texto.posicao == posicao && !texto.valor.vazio)
+        TextoPdf(titulo: texto.valor.titulo, corpo: texto.valor.corpo),
+  ];
 
   String? _limpo(TextEditingController controle) {
     final texto = controle.text.trim();
@@ -333,6 +468,9 @@ class PropostaController extends ChangeNotifier {
     valor.dispose();
     desconto.dispose();
     visita.dispose();
+    for (final texto in textos) {
+      texto.dispose();
+    }
     super.dispose();
   }
 }

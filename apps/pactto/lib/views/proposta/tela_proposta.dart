@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/proposta_controller.dart';
 import '../../core/theme/tema.dart';
 import '../../models/empresa.dart';
+import '../../models/modelo_proposta.dart';
 import 'entrada_proposta.dart';
 import 'folha_proposta.dart';
 
@@ -13,11 +14,15 @@ class TelaProposta extends StatefulWidget {
     this.empresa = const Empresa(),
     this.numero = 1,
     this.logoPadrao,
+    this.modelos = const [],
+    this.modeloId,
   });
 
   final Empresa empresa;
   final int numero;
   final Uint8List? logoPadrao;
+  final List<ModeloProposta> modelos;
+  final String? modeloId;
 
   @override
   State<TelaProposta> createState() => _TelaPropostaState();
@@ -28,6 +33,8 @@ class _TelaPropostaState extends State<TelaProposta> {
     empresa: widget.empresa,
     numero: widget.numero,
     logoPadrao: widget.logoPadrao,
+    modelos: widget.modelos,
+    modeloId: widget.modeloId,
   );
 
   @override
