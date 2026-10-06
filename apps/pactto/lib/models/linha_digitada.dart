@@ -74,6 +74,22 @@ class LinhaDigitada {
     }
   }
 
+  /// Coluna "Item" da tabela de investimento, com a conta quando há
+  /// quantidade.
+  String get item {
+    final unitario = formatarReais(valorCentavos);
+    final quantidade = formatarQuantidade(quantidadeMilesimos);
+    return switch (modalidade) {
+      ModalidadeItem.hora => '$nome ($quantidade h × $unitario)',
+      ModalidadeItem.licenca =>
+        '$nome ($quantidade ${quantidadeMilesimos == 1000 ? 'licença' : 'licenças'} × $unitario)',
+      ModalidadeItem.valorFechado || ModalidadeItem.mensalidade => nome,
+    };
+  }
+
+  /// Coluna "Cobrança": a mensalidade se repete, o resto é pago uma vez.
+  String get cobranca => somaNoOrcamento ? 'única' : 'mensal';
+
   int get totalCentavos {
     return totalLinhaCentavos(
       quantidadeMilesimos: quantidadeMilesimos,

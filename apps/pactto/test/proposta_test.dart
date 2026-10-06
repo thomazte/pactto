@@ -4,7 +4,7 @@ import 'package:pactto/app.dart';
 
 void main() {
   testWidgets('2,5 vezes 33,33 fecha em 83,33', (tester) async {
-    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.physicalSize = const Size(800, 3200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -32,7 +32,7 @@ void main() {
   testWidgets('hora de 50 por 60 fecha em 3.000 e mensalidade fica de fora', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.physicalSize = const Size(800, 3600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -85,7 +85,7 @@ void main() {
   });
 
   testWidgets('valor inválido mostra o motivo e não vira item', (tester) async {
-    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.physicalSize = const Size(800, 3200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -109,7 +109,7 @@ void main() {
   testWidgets('telefone e WhatsApp ganham a máscara ao digitar', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.physicalSize = const Size(800, 3200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

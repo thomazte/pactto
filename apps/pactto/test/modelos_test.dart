@@ -148,11 +148,13 @@ void main() {
     controller.adicionar();
 
     expect(await controller.gerarPdf(), ResultadoPdf.gerado);
-    // Com "×" e "—" nos itens, as palavras-chave do PDF saem em UTF-16.
-    String utf16(String texto) => texto.split('').map((c) => '\x00$c').join();
-    final texto = latin1.decode(pdf.bytes!, allowInvalid: true);
-    expect(texto, contains(utf16('Escopo ajustado')));
-    expect(texto, contains(utf16('Garantia')));
+    // As palavras-chave saem em UTF-16 quando têm caractere fora do
+    // Latin-1; sem os zeros, a busca vale para os dois jeitos.
+    final texto = latin1
+        .decode(pdf.bytes!, allowInvalid: true)
+        .replaceAll('\x00', '');
+    expect(texto, contains('Escopo ajustado'));
+    expect(texto, contains('Garantia'));
     expect(controller.textos.first.titulo.text, 'Escopo');
   });
 

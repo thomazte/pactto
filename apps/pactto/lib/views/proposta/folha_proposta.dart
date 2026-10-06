@@ -2,6 +2,7 @@ import 'package:dominio/dominio.dart';
 import 'package:flutter/material.dart';
 
 import '../../controllers/proposta_controller.dart';
+import '../../models/linha_texto.dart';
 import '../../models/modelo_proposta.dart';
 import '../../core/theme/tema.dart';
 import '../../core/widgets/marca_pix.dart';
@@ -19,14 +20,6 @@ class FolhaProposta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final linhas = controller.linhas;
-    final somadas = [
-      for (final linha in linhas)
-        if (linha.somaNoOrcamento) linha,
-    ];
-    final mensalidades = [
-      for (final linha in linhas)
-        if (!linha.somaNoOrcamento) linha,
-    ];
     final resumo = controller.resumo;
     final totais = resumo.totais;
     final empresaNome = controller.nomeEmpresa;
@@ -201,13 +194,21 @@ class FolhaProposta extends StatelessWidget {
                       ),
                     )
                   else
-                    for (final linha in somadas) ...[
-                      Text(
-                        linha.texto,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _TabelaFolha(
+                        cabecalho: const ['Item', 'Cobrança', 'Valor'],
+                        pesos: const [5, 2, 2],
+                        linhas: [
+                          for (final linha in linhas)
+                            [
+                              linha.item,
+                              linha.cobranca,
+                              formatarReais(linha.totalCentavos),
+                            ],
+                        ],
                       ),
-                      const Divider(height: 22, color: Cores.linha),
-                    ],
+                    ),
                   if (resumo.mensagem != null)
                     Text(
                       resumo.mensagem!,
@@ -226,31 +227,36 @@ class FolhaProposta extends StatelessWidget {
                         'Visita',
                         formatarReais(totais.taxaDeslocamentoCentavos),
                       ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text(
-                          'Total',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                    if (controller.mostraTotal) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              controller.rotuloTotal,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          formatarReais(totais.totalCentavos),
-                          key: const Key('total'),
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                      ],
-                    ),
-                    if (mensalidades.isNotEmpty) ...[
-                      const Divider(height: 28, color: Cores.linha),
-                      for (final linha in mensalidades)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Text(linha.texto),
-                        ),
+                          const SizedBox(width: 12),
+                          // Total grande encolhe em vez de estourar a linha.
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                formatarReais(totais.totalCentavos),
+                                key: const Key('total'),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ],
                   if (depois.isNotEmpty) const SizedBox(height: 20),
@@ -262,6 +268,7 @@ class FolhaProposta extends StatelessWidget {
                     onPressed:
                         linhas.isEmpty ||
                             totais == null ||
+                            controller.validadeDias == null ||
                             controller.gerandoPdf
                         ? null
                         : onPdf,
@@ -287,10 +294,18 @@ class _TextoFolha extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final linhas = texto.corpo
-        .split('\n')
-        .map((linha) => linha.trim())
-        .where((linha) => linha.isNotEmpty);
+    Widget conteudo(LinhaTexto linha) => Text.rich(
+      TextSpan(
+        children: [
+          if (linha.rotulo != null)
+            TextSpan(
+              text: linha.rotulo,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          TextSpan(text: linha.resto),
+        ],
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -307,18 +322,18 @@ class _TextoFolha extends StatelessWidget {
                 ),
               ),
             ),
-          for (final linha in linhas)
+          for (final linha in lerCorpo(texto.corpo))
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: linha.startsWith('- ')
+              child: linha.topico
                   ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(width: 14, child: Text('•')),
-                        Expanded(child: Text(linha.substring(2).trim())),
+                        Expanded(child: conteudo(linha)),
                       ],
                     )
-                  : Text(linha, style: const TextStyle(color: Cores.tinta)),
+                  : conteudo(linha),
             ),
         ],
       ),
@@ -356,6 +371,69 @@ class _AceiteFolha extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Mesma tabela que o PDF desenha: cabeçalho, traço sob cada linha e a
+/// última coluna à direita.
+class _TabelaFolha extends StatelessWidget {
+  const _TabelaFolha({
+    required this.cabecalho,
+    required this.pesos,
+    required this.linhas,
+  });
+
+  final List<String> cabecalho;
+  final List<int> pesos;
+  final List<List<String>> linhas;
+
+  @override
+  Widget build(BuildContext context) {
+    TableRow linha(List<String> celulas, {required bool topo}) {
+      return TableRow(
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: topo ? Cores.suave : Cores.linha,
+              width: topo ? 1 : 0.8,
+            ),
+          ),
+        ),
+        children: [
+          for (var i = 0; i < celulas.length; i++)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                i == 0 ? 0 : 6,
+                7,
+                i == celulas.length - 1 ? 0 : 6,
+                7,
+              ),
+              child: Text(
+                celulas[i],
+                textAlign: i == celulas.length - 1
+                    ? TextAlign.right
+                    : TextAlign.left,
+                style: TextStyle(
+                  fontSize: topo ? 12 : 13.5,
+                  fontWeight: topo ? FontWeight.w700 : FontWeight.w500,
+                  color: topo ? Cores.suave : Cores.tinta,
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    return Table(
+      columnWidths: {
+        for (var i = 0; i < pesos.length; i++)
+          i: FlexColumnWidth(pesos[i].toDouble()),
+      },
+      children: [
+        linha(cabecalho, topo: true),
+        for (final celulas in linhas) linha(celulas, topo: false),
+      ],
     );
   }
 }

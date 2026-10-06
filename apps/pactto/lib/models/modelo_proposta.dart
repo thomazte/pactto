@@ -47,7 +47,11 @@ class ModeloProposta {
     required this.nome,
     this.textos = const [],
     this.aceite = false,
+    this.validadeDias = validadePadrao,
   });
+
+  /// Dias de validade de uma proposta sem modelo.
+  static const validadePadrao = 7;
 
   factory ModeloProposta.deJson(Map<String, dynamic> json) {
     return ModeloProposta(
@@ -58,6 +62,7 @@ class ModeloProposta {
           TextoProposta.deJson(Map<String, dynamic>.from(texto as Map)),
       ],
       aceite: json['aceite'] == true,
+      validadeDias: json['validadeDias'] as int? ?? validadePadrao,
     );
   }
 
@@ -68,10 +73,14 @@ class ModeloProposta {
   /// Fecha a proposta com validade, "De acordo" e linhas de assinatura.
   final bool aceite;
 
+  /// Dias entre a emissão e o último dia válido, de 1 a 365.
+  final int validadeDias;
+
   Map<String, dynamic> paraJson() => {
     'id': id,
     'nome': nome,
     'textos': [for (final texto in textos) texto.paraJson()],
     'aceite': aceite,
+    'validadeDias': validadeDias,
   };
 }

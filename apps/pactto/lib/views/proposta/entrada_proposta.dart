@@ -504,6 +504,19 @@ class _Modelo extends StatelessWidget {
             ],
           ),
         ),
+        TextField(
+          key: const Key('validade'),
+          controller: controller.validade,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            labelText: 'Validade da proposta (dias)',
+            hintText: '15',
+            errorText: controller.erroValidade,
+          ),
+          onChanged: (_) => controller.notificar(),
+        ),
+        const SizedBox(height: 4),
         for (var i = 0; i < textos.length; i++)
           _CampoTexto(controller: controller, indice: i),
         Wrap(

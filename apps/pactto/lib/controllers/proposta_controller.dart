@@ -67,10 +67,8 @@ class PropostaController extends ChangeNotifier {
     empresaEmail = TextEditingController(text: empresa.email);
     empresaPix = TextEditingController(text: empresa.pix);
     this.modeloId = _modelo(modeloId)?.id;
-    _carregarTextos();
+    _carregarModelo();
   }
-
-  static const validadeDias = 7;
 
   final EmpresaLocal _armazenamento;
   final NumeracaoLocal _numeracao;
@@ -106,6 +104,9 @@ class PropostaController extends ChangeNotifier {
 
   /// O que o cliente precisa, em tópicos soltos, para o pedido à IA.
   final topicosIa = TextEditingController();
+
+  /// Dias de validade desta proposta. Vem do modelo.
+  final validade = TextEditingController();
   final linhas = <LinhaDigitada>[];
 
   final List<ModeloProposta> modelos;
@@ -160,9 +161,35 @@ class PropostaController extends ChangeNotifier {
 
   String get emitidaEm => formatarData(dataCivilSaoPaulo(_agora()));
 
+  /// Null quando o campo não tem um número de 1 a 365.
+  int? get validadeDias {
+    final dias = int.tryParse(validade.text.trim());
+    return dias != null && dias >= 1 && dias <= 365 ? dias : null;
+  }
+
+  String? get erroValidade => validadeDias == null ? 'De 1 a 365 dias.' : null;
+
+  /// Com a validade inválida, a folha mostra a do padrão e o PDF não sai.
   String get validaAte => formatarData(
-    calcularValidoAte(enviadoEm: _agora(), validadeDias: validadeDias),
+    calcularValidoAte(
+      enviadoEm: _agora(),
+      validadeDias: validadeDias ?? ModeloProposta.validadePadrao,
+    ),
   );
+
+  bool get temMensalidade => linhas.any((linha) => !linha.somaNoOrcamento);
+
+  /// Proposta só de mensalidade, sem desconto nem visita, fica sem total.
+  bool get mostraTotal {
+    final totais = resumo.totais;
+    if (totais == null) return false;
+    return linhas.any((linha) => linha.somaNoOrcamento) ||
+        totais.totalCentavos > 0;
+  }
+
+  /// Com mensalidade na tabela, o total deixa claro que ela não entra.
+  String get rotuloTotal =>
+      temMensalidade ? 'Total dos valores únicos' : 'Total';
 
   List<String> get linhasEmpresa => [
     ?_limpo(empresaTelefone),
@@ -299,10 +326,10 @@ class PropostaController extends ChangeNotifier {
 
   ModeloProposta? get modeloAtual => _modelo(modeloId);
 
-  /// Troca os textos da proposta pelos do modelo.
+  /// Troca textos, aceite e validade da proposta pelos do modelo.
   void escolherModelo(String? id) {
     modeloId = _modelo(id)?.id;
-    _carregarTextos();
+    _carregarModelo();
     _modelosLocal.salvarEscolhido(modeloId);
     _atualizar();
   }
@@ -342,6 +369,7 @@ class PropostaController extends ChangeNotifier {
       nome: limpo,
       textos: valores,
       aceite: incluirAceite,
+      validadeDias: validadeDias ?? ModeloProposta.validadePadrao,
     );
     if (indice < 0) {
       modelos.add(modelo);
@@ -410,7 +438,10 @@ class PropostaController extends ChangeNotifier {
 
   Future<ResultadoPdf> gerarPdf() async {
     final totais = resumo.totais;
-    if (totais == null || linhas.isEmpty || gerandoPdf) {
+    if (totais == null ||
+        linhas.isEmpty ||
+        validadeDias == null ||
+        gerandoPdf) {
       return ResultadoPdf.ignorado;
     }
     gerandoPdf = true;
@@ -425,14 +456,14 @@ class PropostaController extends ChangeNotifier {
         logo: logo,
         linhas: [
           for (final linha in linhas)
-            if (linha.somaNoOrcamento)
-              LinhaPdf(nome: linha.texto, detalhe: '', total: ''),
+            LinhaPdf(
+              nome: linha.item,
+              detalhe: linha.cobranca,
+              total: formatarReais(linha.totalCentavos),
+            ),
         ],
-        mensalidades: [
-          for (final linha in linhas)
-            if (!linha.somaNoOrcamento) linha.texto,
-        ],
-        total: formatarReais(totais.totalCentavos),
+        total: mostraTotal ? formatarReais(totais.totalCentavos) : null,
+        rotuloTotal: rotuloTotal,
         desconto: totais.descontoCentavos == 0
             ? null
             : formatarReais(totais.descontoCentavos),
@@ -487,7 +518,7 @@ class PropostaController extends ChangeNotifier {
     modalidade = ModalidadeItem.hora;
     descontoTipo = TipoDesconto.percentual;
     mostrarAjustes = false;
-    _carregarTextos();
+    _carregarModelo();
   }
 
   ModeloProposta? _modelo(String? id) {
@@ -497,8 +528,10 @@ class PropostaController extends ChangeNotifier {
     return null;
   }
 
-  void _carregarTextos() {
+  void _carregarModelo() {
     incluirAceite = modeloAtual?.aceite ?? false;
+    validade.text =
+        '${modeloAtual?.validadeDias ?? ModeloProposta.validadePadrao}';
     for (final texto in textos) {
       texto.dispose();
     }
@@ -554,6 +587,7 @@ class PropostaController extends ChangeNotifier {
     desconto.dispose();
     visita.dispose();
     topicosIa.dispose();
+    validade.dispose();
     for (final texto in textos) {
       texto.dispose();
     }

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+/// Linha da tabela de investimento: item, cobrança e valor.
 class LinhaPdf {
   const LinhaPdf({
     required this.nome,
@@ -8,6 +9,8 @@ class LinhaPdf {
   });
 
   final String nome;
+
+  /// "única" ou "mensal".
   final String detalhe;
   final String total;
 }
@@ -27,8 +30,8 @@ class PropostaPdf {
     required this.emitidaEm,
     required this.validaAte,
     required this.linhas,
-    required this.total,
-    this.mensalidades = const [],
+    this.total,
+    this.rotuloTotal = 'Total',
     this.desconto,
     this.visita,
     this.empresaNome,
@@ -52,9 +55,9 @@ class PropostaPdf {
 
   final List<LinhaPdf> linhas;
 
-  /// Valores mensais, fora do total único do projeto.
-  final List<String> mensalidades;
-  final String total;
+  /// Soma dos valores únicos. Null quando a proposta só tem mensalidade.
+  final String? total;
+  final String rotuloTotal;
   final String? desconto;
   final String? visita;
   final String? empresaNome;

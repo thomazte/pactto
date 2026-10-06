@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dominio/dominio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pactto/models/atalho_item.dart';
@@ -36,65 +37,46 @@ void main() {
     expect(texto, contains('1.440,00'));
   });
 
-  test(
-    'o PDF separa a mensalidade da conta de hora, fechado e licença',
-    () async {
-      final hora = LinhaDigitada.ler(
-        modalidade: ModalidadeItem.hora,
-        descricao: 'Desenvolvimento',
-        quantidade: '50',
-        valor: '60',
-      );
-      final fechado = LinhaDigitada.ler(
-        modalidade: ModalidadeItem.valorFechado,
-        descricao: 'Implantação',
-        quantidade: '1',
-        valor: '1200',
-      );
-      final licenca = LinhaDigitada.ler(
-        modalidade: ModalidadeItem.licenca,
-        descricao: '',
-        quantidade: '3',
-        valor: '40',
-      );
-      final mensal = LinhaDigitada.ler(
-        modalidade: ModalidadeItem.mensalidade,
-        descricao: '',
-        quantidade: '1',
-        valor: '350',
-      );
+  test('o PDF monta a tabela de investimento com a mensalidade', () async {
+    final hora = LinhaDigitada.ler(
+      modalidade: ModalidadeItem.hora,
+      descricao: 'Desenvolvimento',
+      quantidade: '50',
+      valor: '60',
+    );
+    final mensal = LinhaDigitada.ler(
+      modalidade: ModalidadeItem.mensalidade,
+      descricao: '',
+      quantidade: '1',
+      valor: '350',
+    );
 
-      final bytes = await gerarPdfProposta(
-        PropostaPdf(
-          numero: 1,
-          emitidaEm: '03/10/2026',
-          validaAte: '10/10/2026',
-          linhas: [
-            LinhaPdf(nome: hora.texto, detalhe: '', total: ''),
-            LinhaPdf(nome: fechado.texto, detalhe: '', total: ''),
-            LinhaPdf(nome: licenca.texto, detalhe: '', total: ''),
-          ],
-          mensalidades: [mensal.texto],
-          total: r'R$ 4.320,00',
-        ),
-      );
+    final bytes = await gerarPdfProposta(
+      PropostaPdf(
+        numero: 1,
+        emitidaEm: '03/10/2026',
+        validaAte: '10/10/2026',
+        linhas: [
+          for (final linha in [hora, mensal])
+            LinhaPdf(
+              nome: linha.item,
+              detalhe: linha.cobranca,
+              total: formatarReais(linha.totalCentavos),
+            ),
+        ],
+        rotuloTotal: 'Total dos valores únicos',
+        total: r'R$ 3.000,00',
+      ),
+    );
 
-      final texto = latin1
-          .decode(bytes, allowInvalid: true)
-          .replaceAll('\x00', '');
-      expect(texto, contains('Desenvolvimento'));
-      expect(texto, contains('50 h'));
-      expect(texto, contains('60,00'));
-      expect(texto, contains('3.000,00'));
-      expect(texto, contains('Implanta'));
-      expect(texto, contains('1.200,00'));
-      expect(texto, contains('3 licen'));
-      expect(texto, contains('40,00'));
-      expect(texto, contains('350,00'));
-      expect(texto, contains('a partir do uso'));
-      expect(texto, contains('4.320,00'));
-    },
-  );
+    final texto = latin1
+        .decode(bytes, allowInvalid: true)
+        .replaceAll('\x00', '');
+    expect(texto, contains('Desenvolvimento'));
+    expect(texto, contains('50 h'));
+    expect(texto, contains('Mensalidade'));
+    expect(texto, contains('3.000,00'));
+  });
 
   test('nome curto permanece grande e nome longo cabe numa linha', () async {
     final fonte = await rootBundle.load('assets/fonts/DejaVuSans-Bold.ttf');
